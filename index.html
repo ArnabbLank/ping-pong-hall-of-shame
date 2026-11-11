@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ping Pong Hall of Shame</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One&family=Figtree:wght@400;600;800&display=swap">
+<style>
+  /* Layout: one phone-width column. Felt-green header with a bouncing ball, sticky tab bar, four views. */
+  :root {
+    --bg: #edf3ee; --card: #ffffff; --ink: #11271b; --muted: #55695c; --line: #d3e0d6;
+    --felt: #0f5a3c; --felt-ink: #f2fbf5; --ball: #ff6b14; --ball-ink: #1a0c02;
+    --good: #0f7a45; --bad: #c2361f; --chip: #e1ede4;
+    --font-display: "Bowlby One", "Arial Black", Impact, sans-serif;
+    --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0a1710; --card: #12261b; --ink: #e6f2e9; --muted: #93a99b; --line: #214032;
+      --felt: #0d4c33; --felt-ink: #f2fbf5; --ball: #ff8238; --ball-ink: #1a0c02;
+      --good: #52d08a; --bad: #ff7a63; --chip: #1b3326; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a1710; --card: #12261b; --ink: #e6f2e9; --muted: #93a99b; --line: #214032;
+    --felt: #0d4c33; --felt-ink: #f2fbf5; --ball: #ff8238; --ball-ink: #1a0c02;
+    --good: #52d08a; --bad: #ff7a63; --chip: #1b3326; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light; background: var(--bg); }
+  @media (prefers-color-scheme: dark) { html { color-scheme: dark; } }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.4;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 16px 48px;
+  }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+  .wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--ball); outline-offset: 2px; }
+
+  /* header */
+  .hero { position: relative; overflow: hidden; background: var(--felt); color: var(--felt-ink); border-radius: 18px; padding: 22px 18px 16px; }
+  .hero::before { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 0; border-left: 3px dashed rgba(255,255,255,.28); }
+  .hero > * { position: relative; }
+  .hero h1 { font-size: clamp(28px, 8vw, 40px); line-height: 1.02; }
+  .hero p { margin: 8px 0 0; max-width: 28ch; opacity: .92; }
+  .ball { position: absolute !important; width: 18px; height: 18px; border-radius: 50%; background: var(--ball); box-shadow: inset -3px -3px 0 rgba(0,0,0,.18); animation: pong 3.2s linear infinite; }
+  @keyframes pong { 0% { right: 8%; top: 14%; } 25% { right: 70%; top: 62%; } 50% { right: 8%; top: 30%; } 75% { right: 70%; top: 76%; } 100% { right: 8%; top: 14%; } }
+  @media (prefers-reduced-motion: reduce) { .ball { animation: none; right: 12%; top: 18%; } }
+  .tally { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .tally span { background: rgba(0,0,0,.24); border-radius: 999px; padding: 4px 12px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* tabs */
+  .tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+  .tabs button { border: 0; background: transparent; border-radius: 10px; padding: 10px 2px; font-weight: 800; font-size: 14px; cursor: pointer; min-width: 0; }
+  .tabs button[aria-selected="true"] { background: var(--felt); color: var(--felt-ink); }
+
+  /* shared pieces */
+  section { display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .head h2 { font-size: 22px; }
+  .primary { background: var(--ball); color: var(--ball-ink); border: 0; border-radius: 12px; padding: 13px 16px; font-weight: 800; cursor: pointer; width: 100%; }
+  .primary:disabled { opacity: .55; cursor: wait; }
+  .ghost { background: var(--chip); border: 0; border-radius: 10px; padding: 8px 12px; font-weight: 800; font-size: 14px; cursor: pointer; }
+  label { display: block; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  input, select { width: 100%; background: var(--bg); border: 2px solid var(--line); border-radius: 10px; padding: 11px 12px; font-size: 16px; min-width: 0; }
+  .msg { min-height: 1.4em; margin: 0; font-weight: 600; }
+  .msg.bad { color: var(--bad); } .msg.ok { color: var(--good); }
+  .empty { text-align: center; padding: 28px 16px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+  .empty h3 { font-size: 20px; } .empty p { margin: 0; color: var(--muted); max-width: 32ch; }
+  .empty .primary { width: auto; }
+  .note { background: var(--chip); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
+  .note.bad { color: var(--bad); }
+
+  /* leaderboard */
+  ol.rows, ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .row { display: grid; grid-template-columns: 34px 46px minmax(0,1fr) auto; grid-template-areas: "rank av who elo" ". meta meta meta"; gap: 4px 10px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+  .row.first { border-color: var(--ball); box-shadow: 0 0 0 2px var(--ball) inset; }
+  .rank { grid-area: rank; font-family: var(--font-display); font-size: 24px; text-align: center; }
+  .av { grid-area: av; width: 46px; height: 46px; border-radius: 50%; background: var(--chip); display: grid; place-items: center; font-size: 26px; }
+  .who { grid-area: who; min-width: 0; display: flex; flex-direction: column; }
+  .who b { font-size: 18px; overflow-wrap: anywhere; }
+  .who .title { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--ball); }
+  .who .roast { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .elo { grid-area: elo; text-align: right; display: flex; flex-direction: column; }
+  .elo b { font-family: var(--font-display); font-size: 24px; font-variant-numeric: tabular-nums; font-weight: 400; }
+  .elo small { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--muted); }
+  .meta { grid-area: meta; display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .meta span { background: var(--chip); border-radius: 999px; padding: 2px 10px; }
+  .meta .w { color: var(--good); } .meta .l { color: var(--bad); }
+
+  /* log form */
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--chip); border-radius: 12px; }
+  .seg button { border: 0; background: transparent; border-radius: 9px; padding: 10px; font-weight: 800; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--felt); color: var(--felt-ink); }
+  .vs { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 8px; align-items: end; }
+  .side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .side input[type="number"] { font-family: var(--font-display); font-size: 30px; text-align: center; padding: 8px; }
+  .vsmark { font-family: var(--font-display); color: var(--ball); padding-bottom: 14px; }
+  .field { display: block; }
+  .recent li { display: flex; justify-content: space-between; gap: 8px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .recent .line { min-width: 0; overflow-wrap: anywhere; }
+  .recent small { color: var(--muted); display: block; }
+  .recent .del { flex: none; }
+
+  /* matchups */
+  .match { display: flex; flex-direction: column; gap: 10px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+  .faceoff { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 8px; align-items: center; text-align: center; }
+  .faceoff .p { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
+  .faceoff .p b { overflow-wrap: anywhere; } .faceoff .p small { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .faceoff .av { grid-area: auto; }
+  .odds { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--chip); }
+  .odds i { display: block; background: var(--felt); } .odds i + i { background: var(--ball); }
+  .oddsl { display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--muted); }
+  .match .tag { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--ball); }
+  .match p { margin: 0; }
+
+  /* players */
+  .emojis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .emojis button { border: 2px solid var(--line); background: var(--bg); border-radius: 10px; font-size: 24px; padding: 6px 0; cursor: pointer; }
+  .emojis button[aria-pressed="true"] { border-color: var(--ball); background: var(--chip); }
+  .foot { text-align: center; color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <i class="ball"></i>
+    <h1>Ping Pong Hall of Shame</h1>
+    <p id="tagline">Where friendships go to get smashed.</p>
+    <div class="tally" id="tally" aria-live="polite"></div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button role="tab" id="t-board" data-tab="board" aria-selected="true">Ranks</button>
+    <button role="tab" id="t-log" data-tab="log" aria-selected="false">Log it</button>
+    <button role="tab" id="t-matchups" data-tab="matchups" aria-selected="false">Fights</button>
+    <button role="tab" id="t-players" data-tab="players" aria-selected="false">Players</button>
+  </nav>
+
+  <div id="banner"></div>
+  <div id="mode"></div>
+
+  <section id="v-board">
+    <div class="head"><h2>All-time ranks</h2></div>
+    <p class="sub">Every match ever, no seasons, no excuses. Rating is Elo: everyone starts at 1000 and beating better players pays more.</p>
+    <ol class="rows" id="boardList"></ol>
+  </section>
+
+  <section id="v-log" hidden>
+    <div class="head"><h2>Record the carnage</h2></div>
+    <form class="card" id="logForm" style="display:flex;flex-direction:column;gap:14px" autocomplete="off">
+      <div>
+        <label for="seg11">Game played to</label>
+        <div class="seg" id="seg">
+          <button type="button" id="seg11" data-t="11" aria-pressed="true">11 points</button>
+          <button type="button" id="seg21" data-t="21" aria-pressed="false">21 points</button>
+        </div>
+        <p class="sub" id="rule" style="margin-top:6px"></p>
+      </div>
+      <div>
+        <label for="mDate">Date</label>
+        <input type="date" id="mDate">
+      </div>
+      <div class="vs">
+        <div class="side">
+          <div><label for="mA">Player 1</label><select id="mA"></select></div>
+          <div><label for="sA">Score</label><input type="number" id="sA" inputmode="numeric" min="0" max="99" placeholder="0"></div>
+        </div>
+        <div class="vsmark">VS</div>
+        <div class="side">
+          <div><label for="mB">Player 2</label><select id="mB"></select></div>
+          <div><label for="sB">Score</label><input type="number" id="sB" inputmode="numeric" min="0" max="99" placeholder="0"></div>
+        </div>
+      </div>
+      <p class="msg" id="logMsg" role="status"></p>
+      <button class="primary" type="submit" id="logBtn">Make it official</button>
+    </form>
+    <div class="head"><h2>Latest crimes</h2></div>
+    <div class="card" id="passWrap" hidden>
+      <label for="pass">Crew passcode (only needed to delete a match)</label>
+      <input id="pass" type="password" autocomplete="off" placeholder="Ask whoever runs this place">
+    </div>
+    <ul class="rows recent" id="recent"></ul>
+  </section>
+
+  <section id="v-matchups" hidden>
+    <div class="head"><h2>Next fights</h2><button class="ghost" id="randomFight" type="button">Surprise me</button></div>
+    <p class="sub">Pairings from whoever is on the roster, least-met rivals first, then the closest rating. Tap Play this to pre-fill the score sheet.</p>
+    <div id="pickWrap"></div>
+    <div id="matchList" style="display:flex;flex-direction:column;gap:10px"></div>
+  </section>
+
+  <section id="v-players" hidden>
+    <div class="head"><h2>The roster</h2></div>
+    <form class="card" id="playerForm" style="display:flex;flex-direction:column;gap:12px" autocomplete="off">
+      <div>
+        <label for="pName">New player name</label>
+        <input id="pName" maxlength="24" placeholder="e.g. Dave, 'The Wrist'">
+      </div>
+      <div>
+        <label id="emojiLabel">Pick a fighter</label>
+        <div class="emojis" id="emojis" role="group" aria-labelledby="emojiLabel"></div>
+      </div>
+      <p class="msg" id="pMsg" role="status"></p>
+      <button class="primary" type="submit" id="pBtn">Add to the roster</button>
+    </form>
+    <ul class="rows" id="playerList"></ul>
+  </section>
+
+  <p class="foot">No paddles were harmed. Egos were.</p>
+</div>
+
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  function h(tag, attrs, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') e.className = v;
+      else if (k === 'text') e.textContent = v;
+      else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) { if (kid == null || kid === false) continue; e.append(kid.nodeType ? kid : document.createTextNode(kid)); }
+    return e;
+  }
+
+  const TABS = ['board', 'log', 'matchups', 'players'];
+  const EMOJIS = ['🦖', '🐙', '🦆', '🐢', '🥔', '🧀', '🐸', '🦄', '🤖', '👻', '🍕', '🦈'];
+  const TAGLINES = [
+    'Where friendships go to get smashed.',
+    'Official record of who is lying about their backhand.',
+    'Every point counted. Every excuse ignored.',
+    'The ball is small. The egos are not.',
+    'Evidence for the next argument at lunch.'
+  ];
+
+  let store = null, canWrite = true, readyP = false, readyM = false;
+  let players = [], matches = [];
+  let target = 11, emoji = EMOJIS[0], tab = 'board', stats = null;
+  let armedDelete = null;
+  try { const t = parseInt(localStorage.getItem('pp-target'), 10); if (t === 21) target = 21; } catch (e) {}
+
+  $('#tagline').textContent = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
+
+  /* ---------- helpers ---------- */
+  const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const fmtDate = (d) => { try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); } catch (e) { return d; } };
+  const pick = (arr, seed) => { let n = 0; for (const c of String(seed)) n = (n * 31 + c.charCodeAt(0)) >>> 0; return arr[n % arr.length]; };
+  const nm = (id) => { const p = players.find((x) => x.id === id); return p ? p.name : 'A ghost'; };
+
+  function empty(title, text, label, fn) {
+    return h('div', { class: 'card empty' }, h('h3', { text: title }), h('p', { text }), label ? h('button', { class: 'primary', type: 'button', onclick: fn, text: label }) : null);
+  }
+
+  /* ---------- stats (Elo is replayed from every match, oldest first) ---------- */
+  function compute() {
+    const by = new Map(players.map((p) => [p.id, Object.assign({}, p, { elo: 1000, w: 0, l: 0, pf: 0, pa: 0, streak: 0, bagelsTaken: 0, played: 0 })]));
+    const ms = matches.filter((m) => by.has(m.aId) && by.has(m.bId))
+      .sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : (x.createdAt || 0) - (y.createdAt || 0)));
+    const h2h = new Map();
+    for (const m of ms) {
+      const a = by.get(m.aId), b = by.get(m.bId);
+      const ea = 1 / (1 + Math.pow(10, (b.elo - a.elo) / 400));
+      const sa = m.aScore > m.bScore ? 1 : 0;
+      a.elo += 32 * (sa - ea); b.elo += 32 * ((1 - sa) - (1 - ea));
+      a.pf += m.aScore; a.pa += m.bScore; b.pf += m.bScore; b.pa += m.aScore; a.played++; b.played++;
+      const win = sa ? a : b, lose = sa ? b : a;
+      win.w++; lose.l++;
+      win.streak = win.streak > 0 ? win.streak + 1 : 1;
+      lose.streak = lose.streak < 0 ? lose.streak - 1 : -1;
+      if (Math.min(m.aScore, m.bScore) === 0) lose.bagelsTaken++;
+      const key = [m.aId, m.bId].sort().join('|');
+      const r = h2h.get(key) || { n: 0, wins: {}, last: '' };
+      r.n++; r.wins[win.id] = (r.wins[win.id] || 0) + 1; r.last = m.date; h2h.set(key, r);
+    }
+    const rows = [...by.values()].sort((x, y) => (y.played > 0) - (x.played > 0) || y.elo - x.elo || y.w - x.w || x.name.localeCompare(y.name));
+    return { rows, by, h2h, ms, points: ms.reduce((s, m) => s + m.aScore + m.bScore, 0) };
+  }
+
+  function titleFor(i, nPlayed, p) {
+    if (!p.played) return 'Hasn’t played yet (suspicious)';
+    if (i === 0) return nPlayed > 1 ? 'Supreme Paddle Overlord' : 'Champion by default';
+    if (i === 1) return 'Close, But Spicy';
+    if (i === nPlayed - 1 && nPlayed >= 3) return 'Professional Net Inspector';
+    return 'Aggressively Average';
+  }
+  function roastFor(i, nPlayed, p) {
+    const pct = p.played ? p.w / p.played : 0;
+    if (!p.played) return 'Suspiciously well-rested.';
+    if (p.streak >= 3) return 'On a ' + p.streak + '-win streak. Someone check the paddle for batteries.';
+    if (p.streak <= -3) return -p.streak + ' straight losses. The floor sends its condolences.';
+    if (p.bagelsTaken) return 'Got bageled. Zero points. The ball never even said hi.';
+    if (p.played >= 3 && pct === 1) return 'Undefeated. Insufferable.';
+    if (p.played >= 3 && pct === 0) return 'Winless. Heroic commitment to the bit.';
+    if (i === 0) return 'Currently untouchable. Currently.';
+    if (i === nPlayed - 1 && nPlayed >= 3) return 'Makes everyone else feel like a pro.';
+    return pick(['Wins just often enough to stay confident.', 'Plays like the ball owes them money.', 'Great serve, unclear vibes.', 'Trains exclusively at lunch.', 'Blames the table. Every time.'], p.id);
+  }
+
+  /* ---------- rendering ---------- */
+  function renderTally() {
+    const t = $('#tally'); t.replaceChildren();
+    if (!stats) return;
+    t.append(h('span', { text: players.length + (players.length === 1 ? ' player' : ' players') }),
+      h('span', { text: stats.ms.length + (stats.ms.length === 1 ? ' match' : ' matches') }),
+      h('span', { text: stats.points + ' points of pure ego' }));
+  }
+
+  function renderBoard() {
+    const box = $('#boardList'); box.replaceChildren();
+    if (!stats) return;
+    if (!players.length) { box.append(h('li', {}, empty('Nobody here yet', 'The leaderboard is a ghost town. Add a player and let the trash talk begin.', 'Add the first victim', () => go('players')))); return; }
+    const nPlayed = stats.rows.filter((p) => p.played).length;
+    stats.rows.forEach((p, i) => {
+      const diff = p.pf - p.pa, pct = p.played ? Math.round(100 * p.w / p.played) : 0;
+      box.append(h('li', { class: 'row' + (i === 0 && p.played ? ' first' : '') },
+        h('div', { class: 'rank', text: p.played ? String(i + 1) : '–' }),
+        h('div', { class: 'av', 'aria-hidden': 'true', text: p.emoji || '🏓' }),
+        h('div', { class: 'who' }, h('b', { text: p.name }), h('span', { class: 'title', text: titleFor(i, nPlayed, p) }), h('span', { class: 'roast', text: roastFor(i, nPlayed, p) })),
+        h('div', { class: 'elo' }, h('b', { text: String(Math.round(p.elo)) }), h('small', { text: 'ELO' })),
+        h('div', { class: 'meta' },
+          h('span', { text: p.w + 'W–' + p.l + 'L' }),
+          h('span', { text: pct + '% wins' }),
+          h('span', { text: (diff > 0 ? '+' : '') + diff + ' pts' }),
+          p.streak >= 2 ? h('span', { class: 'w', text: 'W' + p.streak + ' streak' }) : null,
+          p.streak <= -2 ? h('span', { class: 'l', text: 'L' + (-p.streak) + ' streak' }) : null)));
+    });
+  }
+
+  function fillSelect(sel, keep) {
+    sel.replaceChildren(h('option', { value: '', text: 'Choose…' }));
+    for (const p of [...players].sort((a, b) => a.name.localeCompare(b.name))) sel.append(h('option', { value: p.id, text: (p.emoji || '') + ' ' + p.name }));
+    if (keep && players.some((p) => p.id === keep)) sel.value = keep;
+  }
+
+  function renderLog() {
+    fillSelect($('#mA'), $('#mA').value); fillSelect($('#mB'), $('#mB').value);
+    const box = $('#recent'); box.replaceChildren();
+    const list = [...matches].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 10);
+    if (!list.length) { box.append(h('li', { class: 'card', style: 'display:block' }, h('p', { class: 'sub', text: 'No matches yet. The table is lonely and the paddles are bored.' }))); return; }
+    for (const m of list) {
+      const aw = m.aScore > m.bScore;
+      const armed = armedDelete === m.id;
+      box.append(h('li', {},
+        h('div', { class: 'line' },
+          h('b', { text: nm(aw ? m.aId : m.bId) }), ' beat ', nm(aw ? m.bId : m.aId), ' ',
+          h('b', { text: Math.max(m.aScore, m.bScore) + '–' + Math.min(m.aScore, m.bScore) }),
+          h('small', { text: fmtDate(m.date) + ' · to ' + (m.target || 11) })),
+        canWrite ? h('button', { class: 'ghost del', type: 'button', 'aria-label': 'Delete this match', text: armed ? 'Sure?' : 'Delete', onclick: () => deleteMatch(m.id) }) : null));
+    }
+  }
+
+  function winProb(a, b) { return 1 / (1 + Math.pow(10, (b.elo - a.elo) / 400)); }
+  function hype(a, b, p) {
+    if (!a.played && !b.played) return 'Total mystery. Bring snacks.';
+    const d = Math.abs(p - 0.5), fav = p >= 0.5 ? a : b, und = p >= 0.5 ? b : a;
+    if (d < 0.07) return 'A coin flip with sweat.';
+    if (d < 0.2) return fav.name + ' is the slight favourite, and ' + und.name + ' knows it.';
+    return und.name + ' is the underdog. Bring a slingshot.';
+  }
+  function pairs() {
+    const out = [], rs = stats.rows;
+    for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+      const a = rs[i], b = rs[j], r = stats.h2h.get([a.id, b.id].sort().join('|')) || { n: 0, wins: {}, last: '' };
+      out.push({ a, b, r, gap: Math.abs(a.elo - b.elo) });
+    }
+    return out.sort((x, y) => x.r.n - y.r.n || x.gap - y.gap);
+  }
+  function matchCard(x) {
+    const { a, b, r } = x, p = winProb(a, b), pa = Math.round(p * 100);
+    const lead = r.n === 0 ? 'Never met. Unfinished business.' : (r.wins[a.id] || 0) === (r.wins[b.id] || 0) ? 'Series tied ' + (r.wins[a.id] || 0) + '–' + (r.wins[b.id] || 0) + '.' : nm((r.wins[a.id] || 0) > (r.wins[b.id] || 0) ? a.id : b.id) + ' leads ' + Math.max(r.wins[a.id] || 0, r.wins[b.id] || 0) + '–' + Math.min(r.wins[a.id] || 0, r.wins[b.id] || 0) + '.';
+    const side = (q) => h('div', { class: 'p' }, h('div', { class: 'av', 'aria-hidden': 'true', text: q.emoji || '🏓' }), h('b', { text: q.name }), h('small', { text: Math.round(q.elo) + ' elo' }));
+    return h('div', { class: 'match' },
+      h('span', { class: 'tag', text: r.n === 0 ? 'Fresh rivalry' : 'Rematch #' + (r.n + 1) }),
+      h('div', { class: 'faceoff' }, side(a), h('b', { class: 'vsmark', style: 'padding:0', text: 'VS' }), side(b)),
+      h('div', {}, h('div', { class: 'odds', role: 'img', 'aria-label': a.name + ' ' + pa + ' percent, ' + b.name + ' ' + (100 - pa) + ' percent' }, h('i', { style: 'width:' + pa + '%' }), h('i', { style: 'width:' + (100 - pa) + '%' })),
+        h('div', { class: 'oddsl' }, h('span', { text: pa + '%' }), h('span', { text: (100 - pa) + '%' }))),
+      h('p', { text: lead + ' ' + hype(a, b, p) }),
+      canWrite ? h('button', { class: 'primary', type: 'button', text: 'Play this', onclick: () => prefill(a.id, b.id) }) : null);
+  }
+  let randomPair = null;
+  function renderMatchups() {
+    const list = $('#matchList'), pw = $('#pickWrap'); list.replaceChildren(); pw.replaceChildren();
+    if (!stats) return;
+    if (players.length < 2) { list.append(empty('Not enough victims', players.length ? 'Table tennis needs two. Add one more player and the fights begin.' : 'Add at least two players to generate fights.', 'Add players', () => go('players'))); return; }
+    const all = pairs();
+    if (randomPair) { const f = all.find((x) => x.a.id === randomPair.a && x.b.id === randomPair.b); if (f) pw.append(h('div', {}, h('h3', { text: 'Fate has spoken', style: 'font-size:18px;margin-bottom:8px' }), matchCard(f))); }
+    all.slice(0, 12).forEach((x) => list.append(matchCard(x)));
+    if (all.length > 12) list.append(h('p', { class: 'sub', text: '+ ' + (all.length - 12) + ' more pairings once these are settled.' }));
+  }
+
+  function renderPlayers() {
+    const box = $('#playerList'); box.replaceChildren();
+    if (!stats) return;
+    if (!players.length) { box.append(h('li', { class: 'card', style: 'display:block' }, h('p', { class: 'sub', text: 'Empty roster. Type a name above and pick a fighter.' }))); return; }
+    for (const p of [...stats.by.values()].sort((a, b) => a.name.localeCompare(b.name))) {
+      box.append(h('li', { class: 'row', style: 'grid-template-columns:46px minmax(0,1fr) auto;grid-template-areas:\'av who elo\'' },
+        h('div', { class: 'av', 'aria-hidden': 'true', text: p.emoji || '🏓' }),
+        h('div', { class: 'who' }, h('b', { text: p.name }), h('span', { class: 'roast', text: p.played ? p.w + 'W–' + p.l + 'L so far' : 'Rookie. No matches yet.' })),
+        h('div', { class: 'elo' }, h('b', { text: String(Math.round(p.elo)) }), h('small', { text: 'ELO' }))));
+    }
+  }
+
+  function renderAll() {
+    stats = compute();
+    renderTally(); renderBoard(); renderLog(); renderMatchups(); renderPlayers();
+    for (const f of ['#logForm', '#playerForm']) $(f).hidden = !canWrite;
+    $('#banner').replaceChildren(canWrite ? '' : h('p', { class: 'note', text: 'View-only mode: you can watch the carnage but not add to it. Ask the owner for Contributor access to log matches.' }));
+  }
+
+  /* ---------- navigation ---------- */
+  function go(t) { location.hash = t; }
+  function showTab() {
+    const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'board';
+    tab = t;
+    for (const name of TABS) { $('#v-' + name).hidden = name !== t; $('#t-' + name).setAttribute('aria-selected', String(name === t)); }
+  }
+  addEventListener('hashchange', showTab);
+  document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
+
+  /* ---------- log form ---------- */
+  function setTarget(t) {
+    target = t;
+    $('#seg11').setAttribute('aria-pressed', String(t === 11)); $('#seg21').setAttribute('aria-pressed', String(t === 21));
+    $('#rule').textContent = 'First to ' + t + ', win by 2. Past ' + (t - 1) + '–' + (t - 1) + ' it goes to deuce.';
+    try { localStorage.setItem('pp-target', String(t)); } catch (e) {}
+  }
+  $('#seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) setTarget(parseInt(b.dataset.t, 10)); });
+  setTarget(target);
+  $('#mDate').value = today();
+
+  function checkScore(t, a, b) {
+    if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0) return 'Enter both scores as whole numbers. Half points are a war crime.';
+    const hi = Math.max(a, b), lo = Math.min(a, b);
+    if (hi === lo) return 'A tie? In table tennis? Somebody is lying.';
+    if (hi < t) return 'Nobody reached ' + t + ' yet. Keep playing.';
+    if (hi === t && lo > t - 2) return 'Win by 2. At ' + t + '–' + lo + ' the game isn’t over.';
+    if (hi > t && hi - lo !== 2) return 'Past ' + t + ' the game ends exactly when someone leads by 2.';
+    if (hi > 99) return 'That rally would still be going. Max score is 99.';
+    return '';
+  }
+  function say(el, text, kind) { el.textContent = text; el.className = 'msg' + (kind ? ' ' + kind : ''); }
+  function writeFailed(el, err) {
+    say(el, err && err.message === 'bad_passcode' ? 'Wrong crew passcode. Nice try.' : 'That didn’t save. Check your connection and try again.', 'bad');
+  }
+
+  $('#logForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = $('#logMsg'), aId = $('#mA').value, bId = $('#mB').value;
+    const a = parseInt($('#sA').value, 10), b = parseInt($('#sB').value, 10), date = $('#mDate').value || today();
+    if (!store) return say(msg, 'Not connected to the ledger yet.', 'bad');
+    if (!aId || !bId) return say(msg, 'Pick two players. It’s a two-person sport.', 'bad');
+    if (aId === bId) return say(msg, 'You can’t beat yourself. Well, you can, but not here.', 'bad');
+    const err = checkScore(target, a, b);
+    if (err) return say(msg, err, 'bad');
+    const btn = $('#logBtn'); btn.disabled = true;
+    try {
+      await store.addMatch({ date, aId, bId, aScore: a, bScore: b, target });
+      const aw = a > b, hi = Math.max(a, b), lo = Math.min(a, b);
+      const quip = lo === 0 ? ' A bagel. Brutal.' : hi - lo <= 2 ? ' Nail-biter.' : hi - lo >= 8 ? ' That was not a match, that was a tutorial.' : '';
+      say(msg, nm(aw ? aId : bId) + ' beat ' + nm(aw ? bId : aId) + ' ' + hi + '–' + lo + '.' + quip, 'ok');
+      $('#sA').value = ''; $('#sB').value = '';
+    } catch (er) { writeFailed(msg, er); } finally { btn.disabled = false; }
+  });
+
+  async function deleteMatch(id) {
+    if (armedDelete !== id) { armedDelete = id; renderLog(); setTimeout(() => { if (armedDelete === id) { armedDelete = null; renderLog(); } }, 4000); return; }
+    armedDelete = null;
+    try { await store.deleteMatch(id, $('#pass').value); } catch (er) { writeFailed($('#logMsg'), er); }
+  }
+
+  function prefill(aId, bId) {
+    $('#mA').value = aId; $('#mB').value = bId; $('#sA').value = ''; $('#sB').value = '';
+    say($('#logMsg'), '', ''); go('log');
+    setTimeout(() => $('#sA').focus(), 50);
+  }
+
+  $('#randomFight').addEventListener('click', () => {
+    if (!stats || players.length < 2) return;
+    const all = pairs(), x = all[Math.floor(Math.random() * all.length)];
+    randomPair = { a: x.a.id, b: x.b.id }; renderMatchups();
+  });
+
+  /* ---------- players ---------- */
+  function renderEmojis() {
+    const box = $('#emojis'); box.replaceChildren();
+    for (const em of EMOJIS) box.append(h('button', { type: 'button', 'aria-pressed': String(em === emoji), 'aria-label': 'Fighter ' + em, text: em, onclick: () => { emoji = em; renderEmojis(); } }));
+  }
+  renderEmojis();
+  $('#playerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = $('#pMsg'), name = $('#pName').value.trim().replace(/\s+/g, ' ');
+    if (!store) return say(msg, 'Not connected to the ledger yet.', 'bad');
+    if (!name) return say(msg, 'Every legend needs a name.', 'bad');
+    if (players.some((p) => p.name.toLowerCase() === name.toLowerCase())) return say(msg, 'Someone already claimed that name. Be more original.', 'bad');
+    const btn = $('#pBtn'); btn.disabled = true;
+    try {
+      await store.addPlayer({ name, emoji });
+      say(msg, name + ' has entered the arena. Good luck. They’ll need it.', 'ok');
+      $('#pName').value = ''; emoji = EMOJIS[(EMOJIS.indexOf(emoji) + 1) % EMOJIS.length]; renderEmojis();
+    } catch (er) { writeFailed(msg, er); } finally { btn.disabled = false; }
+  });
+
+  /* ---------- boot ---------- */
+  showTab();
+  function skeleton() {
+    $('#boardList').replaceChildren(h('li', { class: 'card', style: 'display:block' }, h('p', { class: 'sub', text: 'Warming up the table…' })));
+  }
+  skeleton();
+
+  addEventListener('load', async function start() {
+    try { store = await window.PPStore.create(); } catch (e) { store = null; }
+    if (!store) {
+      $('#boardList').replaceChildren(h('li', {}, empty('The ledger is offline', 'Could not reach the database. Check config.js and reload.', null)));
+      for (const f of ['#logForm', '#playerForm']) $(f).hidden = true;
+      return;
+    }
+    if (store.mode === 'demo') $('#mode').replaceChildren(h('p', { class: 'note', text: 'Demo mode: scores live only in this browser. Add your Supabase keys in config.js to share the ledger with everyone.' }));
+    else $('#passWrap').hidden = false;
+    const slow = setTimeout(() => { if (!(readyP && readyM)) $('#banner').replaceChildren(h('p', { class: 'note bad', text: 'Can\u2019t reach the ledger yet. Still trying, the data on screen may be out of date.' })); }, 10000);
+    const done = () => { if (readyP && readyM) clearTimeout(slow); };
+    const fail = () => { clearTimeout(slow); $('#banner').replaceChildren(h('p', { class: 'note bad', text: 'The ledger stopped answering. Reload to try again.' })); };
+    store.onPlayers((rows) => { players = rows.filter((p) => p.name); readyP = true; done(); renderAll(); }, fail);
+    store.onMatches((rows) => { matches = rows; readyM = true; done(); renderAll(); }, fail);
+  });
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="store.js"></script>
+</body>
+</html>

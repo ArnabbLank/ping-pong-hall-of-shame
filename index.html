@@ -211,6 +211,11 @@
       <div>
         <label id="emojiLabel">Pick a fighter</label>
         <div class="emojis" id="emojis" role="group" aria-labelledby="emojiLabel"></div>
+        <p class="sub" id="fighterName" style="margin-top:6px"></p>
+      </div>
+      <div>
+        <label for="pEmoji">Or type your own emoji (optional)</label>
+        <input id="pEmoji" maxlength="8" placeholder="Paste any emoji from your keyboard">
       </div>
       <p class="msg" id="pMsg" role="status"></p>
       <button class="primary" type="submit" id="pBtn">Add to the roster</button>
@@ -238,7 +243,15 @@
   }
 
   const TABS = ['board', 'log', 'matchups', 'players'];
-  const EMOJIS = ['🦖', '🐙', '🦆', '🐢', '🥔', '🧀', '🐸', '🦄', '🤖', '👻', '🍕', '🦈'];
+  const FIGHTERS = [
+    ['🥷', 'The Ninja'], ['🤺', 'The Fencer'], ['🥊', 'The Boxer'], ['🥋', 'The Black Belt'], ['🤼', 'The Wrestler'], ['🦸', 'The Superhero'],
+    ['🦹', 'The Villain'], ['🧙', 'The Wizard'], ['🧛', 'The Vampire'], ['🧟', 'The Zombie'], ['🧝', 'The Elf'], ['🤖', 'The Robot'],
+    ['👽', 'The Alien'], ['🏴‍☠️', 'The Pirate'], ['🤠', 'The Gunslinger'], ['🦖', 'The T-Rex'], ['🐉', 'The Dragon'], ['🦈', 'The Shark'],
+    ['🦁', 'The Lion'], ['🐺', 'The Lone Wolf'], ['🦅', 'The Eagle'], ['🐙', 'The Octopus'], ['🐗', 'The Boar'], ['👻', 'The Ghost']
+  ];
+  const EMOJIS = FIGHTERS.map((f) => f[0]);
+  const fighterName = (em) => { const f = FIGHTERS.find((x) => x[0] === em); return f ? f[1] : ''; };
+  const isEmoji = (t) => /^\p{Extended_Pictographic}/u.test(t) && [...t].length <= 8;
   const TAGLINES = [
     'Where friendships go to get smashed.',
     'Official record of who is lying about their backhand.',
@@ -433,7 +446,7 @@
     for (const p of [...stats.by.values()].sort((a, b) => a.name.localeCompare(b.name))) {
       box.append(h('li', { class: 'row', style: 'grid-template-columns:46px minmax(0,1fr) auto;grid-template-areas:\'av who elo\'' },
         h('div', { class: 'av', 'aria-hidden': 'true', text: p.emoji || '🏓' }),
-        h('div', { class: 'who' }, h('b', { text: p.name }), h('span', { class: 'roast', text: p.played ? p.w + 'W–' + p.l + 'L so far' : 'Rookie. No matches yet.' })),
+        h('div', { class: 'who' }, h('b', { text: p.name }), h('span', { class: 'roast', text: (fighterName(p.emoji) ? fighterName(p.emoji) + ' · ' : '') + (p.played ? p.w + 'W–' + p.l + 'L so far' : 'Rookie. No matches yet.') })),
         h('div', { class: 'elo' }, h('b', { text: String(Math.round(p.elo)) }), h('small', { text: 'ELO' }))));
     }
   }
@@ -524,20 +537,24 @@
   /* ---------- players ---------- */
   function renderEmojis() {
     const box = $('#emojis'); box.replaceChildren();
-    for (const em of EMOJIS) box.append(h('button', { type: 'button', 'aria-pressed': String(em === emoji), 'aria-label': 'Fighter ' + em, text: em, onclick: () => { emoji = em; renderEmojis(); } }));
+    for (const [em, label] of FIGHTERS) box.append(h('button', { type: 'button', 'aria-pressed': String(em === emoji), 'aria-label': label, title: label, text: em, onclick: () => { emoji = em; $('#pEmoji').value = ''; renderEmojis(); } }));
+    $('#fighterName').textContent = fighterName(emoji) ? 'Fighting as ' + fighterName(emoji) : 'Fighting as a custom legend';
   }
   renderEmojis();
+  $('#pEmoji').addEventListener('input', () => { const c = $('#pEmoji').value.trim(); if (c && isEmoji(c)) { emoji = c; renderEmojis(); } });
   $('#playerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = $('#pMsg'), name = $('#pName').value.trim().replace(/\s+/g, ' ');
     if (!store) return say(msg, 'Not connected to the ledger yet.', 'bad');
     if (!name) return say(msg, 'Every legend needs a name.', 'bad');
     if (players.some((p) => p.name.toLowerCase() === name.toLowerCase())) return say(msg, 'Someone already claimed that name. Be more original.', 'bad');
+    const custom = $('#pEmoji').value.trim();
+    if (custom && !isEmoji(custom)) return say(msg, 'That isn\u2019t an emoji. Fighters are pictures, not words.', 'bad');
     const btn = $('#pBtn'); btn.disabled = true;
     try {
-      await store.addPlayer({ name, emoji });
+      await store.addPlayer({ name, emoji: custom || emoji });
       say(msg, name + ' has entered the arena. Good luck. They’ll need it.', 'ok');
-      $('#pName').value = ''; emoji = EMOJIS[(EMOJIS.indexOf(emoji) + 1) % EMOJIS.length]; renderEmojis();
+      $('#pName').value = ''; $('#pEmoji').value = ''; emoji = EMOJIS[(EMOJIS.indexOf(emoji) + 1) % EMOJIS.length]; renderEmojis();
     } catch (er) { writeFailed(msg, er); } finally { btn.disabled = false; }
   });
 

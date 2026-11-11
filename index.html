@@ -104,6 +104,7 @@
   .side input[type="number"] { font-family: var(--font-display); font-size: 30px; text-align: center; padding: 8px; }
   .vsmark { font-family: var(--font-display); color: var(--ball); padding-bottom: 14px; }
   .field { display: block; }
+  .soundrow { display: flex; gap: 8px; flex-wrap: wrap; }
   .chk { display: flex; gap: 8px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); margin: 8px 0 0; }
   .chk input { width: auto; }
   .recent li { display: flex; justify-content: space-between; gap: 8px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
@@ -182,6 +183,11 @@
           <div><label for="mB">Player 2</label><select id="mB"></select></div>
           <div><label for="sB">Score</label><input type="number" id="sB" inputmode="numeric" min="0" max="99" placeholder="0"></div>
         </div>
+      </div>
+      <div class="soundrow">
+        <button type="button" class="ghost" id="soundBtn" aria-pressed="true"></button>
+        <button type="button" class="ghost" id="testWin">Hear a win</button>
+        <button type="button" class="ghost" id="testLose">Hear a loss</button>
       </div>
       <p class="msg" id="logMsg" role="status"></p>
       <button class="primary" type="submit" id="logBtn">Make it official</button>
@@ -499,6 +505,7 @@
 
   $('#logForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    unlockAudio();
     const msg = $('#logMsg'), aId = $('#mA').value, bId = $('#mB').value;
     const a = parseInt($('#sA').value, 10), b = parseInt($('#sB').value, 10), date = $('#mDate').value || today();
     if (!store) return say(msg, 'Not connected to the ledger yet.', 'bad');
@@ -513,6 +520,7 @@
       const quip = early ? ' Called early, the leader takes it. Quitting is a lifestyle.' : lo === 0 ? ' A bagel. Brutal.' : hi - lo <= 2 ? ' Nail-biter.' : hi - lo >= 8 ? ' That was not a match, that was a tutorial.' : '';
       say(msg, nm(aw ? aId : bId) + ' beat ' + nm(aw ? bId : aId) + ' ' + hi + '–' + lo + '.' + quip, 'ok');
       $('#sA').value = ''; $('#sB').value = ''; $('#early').checked = false;
+      memeSounds(lo === 0);
     } catch (er) { writeFailed(msg, er); } finally { btn.disabled = false; }
   });
 
@@ -586,6 +594,55 @@
     }
     requestAnimationFrame(frame);
   })();
+
+  /* ---------- meme sounds: synthesised with Web Audio (no audio files), played on this device when a match is logged ---------- */
+  let actx = null, soundOn = true;
+  try { soundOn = localStorage.getItem('pp-sound') !== 'off'; } catch (e) {}
+  function unlockAudio() {   // must run inside a tap/click so phones allow sound
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); } catch (e) { actx = null; }
+  }
+  function tone(freq, at, dur, o) {
+    o = o || {};
+    const osc = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter(), v = o.vol || 0.18;
+    osc.type = o.type || 'square'; osc.frequency.setValueAtTime(freq, at);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, at + dur);
+    f.type = 'lowpass'; f.frequency.value = o.cutoff || 3000;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(v, at + 0.02);
+    g.gain.setValueAtTime(v, at + dur - 0.05); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    if (o.vib) { const l = actx.createOscillator(), lg = actx.createGain(); l.frequency.value = o.vib; lg.gain.value = freq * 0.03; l.connect(lg); lg.connect(osc.frequency); l.start(at); l.stop(at + dur + 0.05); }
+    osc.connect(f); f.connect(g); g.connect(actx.destination); osc.start(at); osc.stop(at + dur + 0.05);
+  }
+  function noise(at, dur, vol, centre) {
+    const n = Math.floor(actx.sampleRate * dur), buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+    const src = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
+    src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = centre; bp.Q.value = 0.6;
+    g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + dur * 0.3); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    src.connect(bp); bp.connect(g); g.connect(actx.destination); src.start(at);
+  }
+  const WIN_SOUNDS = [
+    (t) => { [[523, 0, .11], [523, .13, .11], [523, .26, .11], [659, .39, .2], [784, .62, .2], [1047, .85, .75]].forEach((n) => tone(n[0], t + n[1], n[2], { vol: .12 })); tone(523, t + .85, .75, { vol: .07 }); tone(784, t + .85, .75, { vol: .07 }); return 1.7; },   // fanfare
+    (t) => { [[0, .26], [.34, .26], [.68, .7]].forEach((n) => [466, 587, 698].forEach((f) => tone(f, t + n[0], n[1], { type: 'sawtooth', vol: .09, cutoff: 2200, to: f * .97 }))); return 1.5; },   // air horn
+    (t) => { noise(t, 1.6, .5, 2000); tone(784, t, .14, { type: 'triangle' }); tone(1047, t + .16, .9, { type: 'triangle', vol: .16 }); return 1.7; }   // applause and ta-da
+  ];
+  const LOSE_SOUNDS = [
+    (t) => { [[233, 0], [220, .55], [208, 1.1]].forEach((n) => tone(n[0], t + n[1], .5, { type: 'sawtooth', vol: .2, cutoff: 900 })); tone(196, t + 1.65, 1.4, { type: 'sawtooth', vol: .2, cutoff: 900, to: 150, vib: 6 }); return 3.1; },   // sad trombone
+    (t) => { tone(1400, t, 1, { type: 'sine', to: 140, vol: .2 }); tone(80, t + 1, .35, { type: 'sine', to: 40, vol: .3 }); return 1.4; },   // slide whistle and thud
+    (t) => { [[440, 0], [392, .18], [349, .36], [311, .54]].forEach((n) => tone(n[0], t + n[1], .16, { type: 'triangle', vol: .2 })); tone(220, t + .75, .9, { type: 'sawtooth', vol: .14, cutoff: 800, to: 110, vib: 7 }); return 1.7; }   // cartoon fail
+  ];
+  const oneOf = (a) => a[Math.floor(Math.random() * a.length)];
+  function memeSounds(bagel) {   // winner's sting first, then the loser's
+    if (!soundOn || !actx) return;
+    try {
+      const t = actx.currentTime + 0.05, d = (bagel ? WIN_SOUNDS[1] : oneOf(WIN_SOUNDS))(t);
+      (bagel ? LOSE_SOUNDS[0] : oneOf(LOSE_SOUNDS))(t + d);
+    } catch (e) {}
+  }
+  function showSoundBtn() { const b = $('#soundBtn'); b.textContent = 'Meme sounds: ' + (soundOn ? 'on' : 'off'); b.setAttribute('aria-pressed', String(soundOn)); }
+  showSoundBtn();
+  $('#soundBtn').addEventListener('click', () => { soundOn = !soundOn; try { localStorage.setItem('pp-sound', soundOn ? 'on' : 'off'); } catch (e) {} if (soundOn) unlockAudio(); showSoundBtn(); });
+  $('#testWin').addEventListener('click', () => { unlockAudio(); if (actx) try { oneOf(WIN_SOUNDS)(actx.currentTime + 0.05); } catch (e) {} });
+  $('#testLose').addEventListener('click', () => { unlockAudio(); if (actx) try { oneOf(LOSE_SOUNDS)(actx.currentTime + 0.05); } catch (e) {} });
 
   /* ---------- boot ---------- */
   showTab();

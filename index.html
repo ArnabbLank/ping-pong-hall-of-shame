@@ -104,6 +104,10 @@
   .side input[type="number"] { font-family: var(--font-display); font-size: 30px; text-align: center; padding: 8px; }
   .vsmark { font-family: var(--font-display); color: var(--ball); padding-bottom: 14px; }
   .field { display: block; }
+  #flash { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 24px; text-align: center; pointer-events: none; font-family: var(--font-display); font-size: clamp(30px, 11vw, 64px); line-height: 1.05; color: #fff; text-shadow: 0 3px 0 var(--ball), 0 0 28px rgba(0,0,0,.6); background: rgba(8, 30, 20, .55); text-wrap: balance; }
+  #flash.pop { animation: pop .45s cubic-bezier(.2, 1.4, .4, 1); }
+  @keyframes pop { from { transform: scale(.4) rotate(-6deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { #flash.pop { animation: none; } }
   .soundrow { display: flex; gap: 8px; flex-wrap: wrap; }
   .chk { display: flex; gap: 8px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); margin: 8px 0 0; }
   .chk input { width: auto; }
@@ -132,6 +136,8 @@
 </style>
 </head>
 <body>
+
+<div id="flash" role="status" hidden></div>
 
 <div class="wrap">
   <header class="hero">
@@ -520,6 +526,7 @@
       const quip = early ? ' Called early, the leader takes it. Quitting is a lifestyle.' : lo === 0 ? ' A bagel. Brutal.' : hi - lo <= 2 ? ' Nail-biter.' : hi - lo >= 8 ? ' That was not a match, that was a tutorial.' : '';
       say(msg, nm(aw ? aId : bId) + ' beat ' + nm(aw ? bId : aId) + ' ' + hi + '–' + lo + '.' + quip, 'ok');
       $('#sA').value = ''; $('#sB').value = ''; $('#early').checked = false;
+      flash(nm(aw ? aId : bId), nm(aw ? bId : aId), lo === 0);
       memeSounds(lo === 0);
     } catch (er) { writeFailed(msg, er); } finally { btn.disabled = false; }
   });
@@ -631,18 +638,47 @@
     (t) => { [[440, 0], [392, .18], [349, .36], [311, .54]].forEach((n) => tone(n[0], t + n[1], .16, { type: 'triangle', vol: .2 })); tone(220, t + .75, .9, { type: 'sawtooth', vol: .14, cutoff: 800, to: 110, vib: 7 }); return 1.7; }   // cartoon fail
   ];
   const oneOf = (a) => a[Math.floor(Math.random() * a.length)];
-  function memeSounds(bagel) {   // winner's sting first, then the loser's
+  // Optional real clips: list file paths in config.js (sounds.win / sounds.lose). Missing or broken files fall back to the synth sounds.
+  const clipCache = new Map();
+  async function playClip(url, maxSec) {
+    let buf = clipCache.get(url);
+    if (!buf) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('missing clip');
+      buf = await actx.decodeAudioData(await res.arrayBuffer());
+      clipCache.set(url, buf);
+    }
+    const t = actx.currentTime + 0.05, dur = Math.min(buf.duration, maxSec), src = actx.createBufferSource(), g = actx.createGain();
+    src.buffer = buf; g.gain.setValueAtTime(1, t); g.gain.setValueAtTime(1, t + dur - 0.3); g.gain.linearRampToValueAtTime(0, t + dur);
+    src.connect(g); g.connect(actx.destination); src.start(t); src.stop(t + dur + 0.05);
+    return dur;
+  }
+  async function playOne(kind, bagel) {   // resolves to seconds of sound scheduled
+    const clips = (window.PP_CONFIG && window.PP_CONFIG.sounds && window.PP_CONFIG.sounds[kind]) || [];
+    if (clips.length && Math.random() < 0.75) { try { return await playClip(oneOf(clips), 6); } catch (e) {} }
+    const pool = kind === 'win' ? WIN_SOUNDS : LOSE_SOUNDS;
+    return (bagel ? pool[kind === 'win' ? 1 : 0] : oneOf(pool))(actx.currentTime + 0.05);
+  }
+  async function memeSounds(bagel) {   // winner's sting first, then the loser's
     if (!soundOn || !actx) return;
     try {
-      const t = actx.currentTime + 0.05, d = (bagel ? WIN_SOUNDS[1] : oneOf(WIN_SOUNDS))(t);
-      (bagel ? LOSE_SOUNDS[0] : oneOf(LOSE_SOUNDS))(t + d);
+      const d = await playOne('win', bagel);
+      await new Promise((r) => setTimeout(r, d * 1000));
+      await playOne('lose', bagel);
     } catch (e) {}
+  }
+  const CAPTIONS = ['AND HIS NAME IS {W}!', 'ALL HAIL {W}', '{W} DEMOLISHES {L}', '{L} HAS LEFT THE CHAT', 'MOM GET THE CAMERA, {W} WON', 'YOU CAN’T SEE {W}. THE BALL CAN’T EITHER.', '{W} HAS ENTERED THE HALL OF FAME'];
+  let flashTimer = 0;
+  function flash(w, l, bagel) {
+    const box = $('#flash'), text = bagel ? l + ' SCORED ZERO. ZERO.' : oneOf(CAPTIONS).replace('{W}', w).replace('{L}', l);
+    box.textContent = text.toUpperCase(); box.hidden = false; box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
+    clearTimeout(flashTimer); flashTimer = setTimeout(() => { box.hidden = true; }, 3200);
   }
   function showSoundBtn() { const b = $('#soundBtn'); b.textContent = 'Meme sounds: ' + (soundOn ? 'on' : 'off'); b.setAttribute('aria-pressed', String(soundOn)); }
   showSoundBtn();
   $('#soundBtn').addEventListener('click', () => { soundOn = !soundOn; try { localStorage.setItem('pp-sound', soundOn ? 'on' : 'off'); } catch (e) {} if (soundOn) unlockAudio(); showSoundBtn(); });
-  $('#testWin').addEventListener('click', () => { unlockAudio(); if (actx) try { oneOf(WIN_SOUNDS)(actx.currentTime + 0.05); } catch (e) {} });
-  $('#testLose').addEventListener('click', () => { unlockAudio(); if (actx) try { oneOf(LOSE_SOUNDS)(actx.currentTime + 0.05); } catch (e) {} });
+  $('#testWin').addEventListener('click', () => { unlockAudio(); if (actx) playOne('win', false).catch(() => {}); });
+  $('#testLose').addEventListener('click', () => { unlockAudio(); if (actx) playOne('lose', false).catch(() => {}); });
 
   /* ---------- boot ---------- */
   showTab();

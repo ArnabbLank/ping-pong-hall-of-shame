@@ -106,6 +106,8 @@
   .side input[type="number"] { font-family: var(--font-display); font-size: 30px; text-align: center; padding: 8px; }
   .vsmark { font-family: var(--font-display); color: var(--ball); padding-bottom: 14px; }
   .field { display: block; }
+  .chk { display: flex; gap: 8px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ink); margin: 8px 0 0; }
+  .chk input { width: auto; }
   .recent li { display: flex; justify-content: space-between; gap: 8px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
   .recent .line { min-width: 0; overflow-wrap: anywhere; }
   .recent small { color: var(--muted); display: block; }
@@ -166,6 +168,7 @@
           <button type="button" id="seg21" data-t="21" aria-pressed="false">21 points</button>
         </div>
         <p class="sub" id="rule" style="margin-top:6px"></p>
+        <label class="chk" for="early"><input type="checkbox" id="early"> Game ended early (someone quit or got called away)</label>
       </div>
       <div>
         <label for="mDate">Date</label>
@@ -381,7 +384,7 @@
         h('div', { class: 'line' },
           h('b', { text: nm(aw ? m.aId : m.bId) }), ' beat ', nm(aw ? m.bId : m.aId), ' ',
           h('b', { text: Math.max(m.aScore, m.bScore) + '–' + Math.min(m.aScore, m.bScore) }),
-          h('small', { text: fmtDate(m.date) + ' · to ' + (m.target || 11) })),
+          h('small', { text: fmtDate(m.date) + ' · to ' + (m.target || 11) + (m.endedEarly ? ' · ended early' : '') })),
         canWrite ? h('button', { class: 'ghost del', type: 'button', 'aria-label': 'Delete this match', text: armed ? 'Sure?' : 'Delete', onclick: () => deleteMatch(m.id) }) : null));
     }
   }
@@ -460,17 +463,18 @@
   function setTarget(t) {
     target = t;
     $('#seg11').setAttribute('aria-pressed', String(t === 11)); $('#seg21').setAttribute('aria-pressed', String(t === 21));
-    $('#rule').textContent = 'First to ' + t + ', win by 2. Past ' + (t - 1) + '–' + (t - 1) + ' it goes to deuce.';
+    $('#rule').textContent = 'First to ' + t + ', win by 2. Tied at ' + (t - 1) + '–' + (t - 1) + ' it goes to deuce, so ' + (t + 1) + '–' + (t - 1) + ' ends it, but ' + (t + 2) + '–' + t + ', ' + (t + 3) + '–' + (t + 1) + ' and beyond are all legal.';
     try { localStorage.setItem('pp-target', String(t)); } catch (e) {}
   }
   $('#seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) setTarget(parseInt(b.dataset.t, 10)); });
   setTarget(target);
   $('#mDate').value = today();
 
-  function checkScore(t, a, b) {
+  function checkScore(t, a, b, early) {
     if (!Number.isInteger(a) || !Number.isInteger(b) || a < 0 || b < 0) return 'Enter both scores as whole numbers. Half points are a war crime.';
     const hi = Math.max(a, b), lo = Math.min(a, b);
     if (hi === lo) return 'A tie? In table tennis? Somebody is lying.';
+    if (early) return hi > 99 ? 'That rally would still be going. Max score is 99.' : '';
     if (hi < t) return 'Nobody reached ' + t + ' yet. Keep playing.';
     if (hi === t && lo > t - 2) return 'Win by 2. At ' + t + '–' + lo + ' the game isn’t over.';
     if (hi > t && hi - lo !== 2) return 'Past ' + t + ' the game ends exactly when someone leads by 2.';
@@ -489,15 +493,15 @@
     if (!store) return say(msg, 'Not connected to the ledger yet.', 'bad');
     if (!aId || !bId) return say(msg, 'Pick two players. It’s a two-person sport.', 'bad');
     if (aId === bId) return say(msg, 'You can’t beat yourself. Well, you can, but not here.', 'bad');
-    const err = checkScore(target, a, b);
+    const early = $('#early').checked, err = checkScore(target, a, b, early);
     if (err) return say(msg, err, 'bad');
     const btn = $('#logBtn'); btn.disabled = true;
     try {
-      await store.addMatch({ date, aId, bId, aScore: a, bScore: b, target });
+      await store.addMatch({ date, aId, bId, aScore: a, bScore: b, target, endedEarly: early });
       const aw = a > b, hi = Math.max(a, b), lo = Math.min(a, b);
-      const quip = lo === 0 ? ' A bagel. Brutal.' : hi - lo <= 2 ? ' Nail-biter.' : hi - lo >= 8 ? ' That was not a match, that was a tutorial.' : '';
+      const quip = early ? ' Called early, the leader takes it. Quitting is a lifestyle.' : lo === 0 ? ' A bagel. Brutal.' : hi - lo <= 2 ? ' Nail-biter.' : hi - lo >= 8 ? ' That was not a match, that was a tutorial.' : '';
       say(msg, nm(aw ? aId : bId) + ' beat ' + nm(aw ? bId : aId) + ' ' + hi + '–' + lo + '.' + quip, 'ok');
-      $('#sA').value = ''; $('#sB').value = '';
+      $('#sA').value = ''; $('#sB').value = ''; $('#early').checked = false;
     } catch (er) { writeFailed(msg, er); } finally { btn.disabled = false; }
   });
 

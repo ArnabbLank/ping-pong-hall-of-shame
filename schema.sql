@@ -17,15 +17,19 @@ create table if not exists public.matches (
   a_score   int  not null check (a_score between 0 and 99),
   b_score   int  not null check (b_score between 0 and 99),
   target    int  not null check (target in (11, 21)),
+  ended_early boolean not null default false,
   created_at timestamptz not null default now(),
   constraint different_players check (a_id <> b_id),
-  -- first to target, win by 2 (deuce past target-1)
+  -- finished games: first to target, win by 2 (deuce past target-1). Early-ended games skip this.
   constraint valid_score check (
-    greatest(a_score, b_score) >= target and (
-      (greatest(a_score, b_score) = target and least(a_score, b_score) <= target - 2) or
-      (greatest(a_score, b_score) > target and greatest(a_score, b_score) - least(a_score, b_score) = 2)
+    ended_early or (
+      greatest(a_score, b_score) >= target and (
+        (greatest(a_score, b_score) = target and least(a_score, b_score) <= target - 2) or
+        (greatest(a_score, b_score) > target and greatest(a_score, b_score) - least(a_score, b_score) = 2)
+      )
     )
-  )
+  ),
+  constraint no_tie check (a_score <> b_score)
 );
 
 -- Row Level Security: anonymous visitors may read and insert only.

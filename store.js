@@ -25,7 +25,7 @@
 
   function supabaseStore(sb) {
     const toPlayer = (r) => ({ id: r.id, name: r.name, emoji: r.emoji, createdAt: Date.parse(r.created_at) });
-    const toMatch = (r) => ({ id: r.id, date: r.played_on, aId: r.a_id, bId: r.b_id, aScore: r.a_score, bScore: r.b_score, target: r.target, createdAt: Date.parse(r.created_at) });
+    const toMatch = (r) => ({ id: r.id, date: r.played_on, aId: r.a_id, bId: r.b_id, aScore: r.a_score, bScore: r.b_score, target: r.target, endedEarly: !!r.ended_early, createdAt: Date.parse(r.created_at) });
     function watch(table, map, cb, onErr) {
       const load = async () => {
         const { data, error } = await sb.from(table).select('*').order('created_at', { ascending: true }).limit(5000);
@@ -41,7 +41,7 @@
       onMatches: (cb, e) => watch('matches', toMatch, cb, e),
       async addPlayer(p) { const { error } = await sb.from('players').insert({ name: p.name, emoji: p.emoji }); if (error) throw error; },
       async addMatch(m) {
-        const { error } = await sb.from('matches').insert({ played_on: m.date, a_id: m.aId, b_id: m.bId, a_score: m.aScore, b_score: m.bScore, target: m.target });
+        const { error } = await sb.from('matches').insert({ played_on: m.date, a_id: m.aId, b_id: m.bId, a_score: m.aScore, b_score: m.bScore, target: m.target, ended_early: !!m.endedEarly });
         if (error) throw error;
       },
       async deleteMatch(id, passcode) {

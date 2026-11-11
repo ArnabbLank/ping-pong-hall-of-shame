@@ -133,11 +133,60 @@
   .emojis button { border: 2px solid var(--line); background: var(--bg); border-radius: 10px; font-size: 24px; padding: 6px 0; cursor: pointer; }
   .emojis button[aria-pressed="true"] { border-color: var(--ball); background: var(--chip); }
   .foot { text-align: center; color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  /* badges, records, profile */
+  .plink { color: inherit; text-decoration: none; font-weight: 800; font-size: 18px; overflow-wrap: anywhere; }
+  .plink:hover, .plink:focus-visible { text-decoration: underline; }
+  .rank { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; }
+  .mv { font-family: var(--font-body); font-size: 11px; font-weight: 800; }
+  .mv.up { color: var(--good); } .mv.dn { color: var(--bad); }
+  .badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; font-size: 17px; }
+  .recs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+  .rec { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .rec .k { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--ball); }
+  .rec b { font-size: 17px; overflow-wrap: anywhere; }
+  .rec span { color: var(--muted); font-size: 13px; }
+  .pf-head { display: flex; gap: 14px; align-items: center; }
+  .pf-head .av { width: 64px; height: 64px; font-size: 38px; flex: none; }
+  .pf-head h2 { font-size: 26px; overflow-wrap: anywhere; }
+  .pf-head .title { font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--ball); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 8px; }
+  .stat { background: var(--chip); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; }
+  .stat b { font-family: var(--font-display); font-weight: 400; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat small { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .dots { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dot { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: var(--card); }
+  .dot.W { background: var(--good); } .dot.L { background: var(--bad); }
+  .bgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+  .bdg { display: flex; gap: 8px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; min-width: 0; }
+  .bdg.off { opacity: .45; }
+  .bdg i { font-style: normal; font-size: 24px; }
+  .bdg b { font-size: 14px; } .bdg small { display: block; color: var(--muted); font-size: 12px; }
+  .acts { display: flex; gap: 6px; flex: none; }
+  .btnlink { display: inline-block; text-decoration: none; text-align: center; width: auto; }
+  .pair { display: flex; gap: 8px; }
+  .pair > * { flex: 1; }
+  #flash small { display: block; margin-top: .5em; font-size: .36em; color: var(--ball); text-shadow: 0 2px 0 rgba(0,0,0,.5); }
+  #toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(20px, env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-weight: 700; z-index: 60; max-width: 90vw; text-align: center; }
+
+  /* live scorer */
+  .scoreboard { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile { position: relative; border: 3px solid var(--line); background: var(--card); border-radius: 18px; padding: 16px 8px 14px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; min-height: 270px; touch-action: manipulation; user-select: none; -webkit-user-select: none; min-width: 0; }
+  .tile:disabled { opacity: .75; cursor: default; }
+  .tile.serving { border-color: var(--ball); }
+  .tile .av { width: 56px; height: 56px; font-size: 32px; }
+  .tile .lname { font-weight: 800; overflow-wrap: anywhere; text-align: center; font-size: 17px; }
+  .tile .lscore { font-family: var(--font-display); font-size: clamp(72px, 26vw, 132px); line-height: 1; font-variant-numeric: tabular-nums; }
+  .tile .tap { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
+  .serveball { width: 16px; height: 16px; border-radius: 50%; background: var(--ball); visibility: hidden; box-shadow: inset -2px -2px 0 rgba(0,0,0,.2); }
+  .tile.serving .serveball { visibility: visible; }
+  .status { font-family: var(--font-display); font-size: 22px; text-align: center; margin: 0; min-height: 1.4em; text-wrap: balance; }
+  .status.deuce, .status.adv { color: var(--bad); } .status.gp { color: var(--ball); }
 </style>
 </head>
 <body>
 
-<div id="flash" role="status" hidden></div>
+<div id="flash" role="status" hidden><div><span id="flashMain"></span><small id="flashSub"></small></div></div>
+<div id="toast" role="status" hidden></div>
 
 <div class="wrap">
   <header class="hero">
@@ -159,12 +208,18 @@
 
   <section id="v-board">
     <div class="head"><h2>All-time ranks</h2><button class="ghost" id="reroll" type="button">Re-roast</button></div>
-    <p class="sub">Every match ever, no seasons, no excuses. Rating is Elo: everyone starts at 1000 and beating better players pays more.</p>
+    <p class="sub">Every match ever, no seasons, no excuses. Rating is Elo: everyone starts at 1000 and beating better players pays more. Tap a name for the full rap sheet.</p>
     <ol class="rows" id="boardList"></ol>
+    <div class="head"><h2>Hall of Fame &amp; Shame</h2></div>
+    <div class="recs" id="recs"></div>
   </section>
 
   <section id="v-log" hidden>
     <div class="head"><h2>Record the carnage</h2></div>
+    <div class="card" id="liveCard" style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+      <div><b>Playing right now?</b><p class="sub" style="margin:0">Tap a button per point. It tracks serve, deuce and game point, then saves the match.</p></div>
+      <a class="primary btnlink" href="#live" id="goLive">Live scorer</a>
+    </div>
     <form class="card" id="logForm" style="display:flex;flex-direction:column;gap:14px" autocomplete="off">
       <div>
         <label for="seg11">Game played to</label>
@@ -196,6 +251,7 @@
         <button type="button" class="ghost" id="testLose">Hear a loss</button>
       </div>
       <p class="msg" id="logMsg" role="status"></p>
+      <button type="button" class="ghost" id="shareLast" hidden>Share this result</button>
       <button class="primary" type="submit" id="logBtn">Make it official</button>
     </form>
     <div class="head"><h2>Latest crimes</h2></div>
@@ -235,6 +291,50 @@
     <ul class="rows" id="playerList"></ul>
   </section>
 
+  <section id="v-live" hidden>
+    <div class="head"><h2>Live scorer</h2><button class="ghost" id="liveQuit" type="button">Quit</button></div>
+    <p class="note" id="liveNote" hidden>View-only mode: the live scorer needs permission to save matches.</p>
+    <form class="card" id="liveSetup" style="display:flex;flex-direction:column;gap:14px" autocomplete="off">
+      <div>
+        <label for="lseg11">Game played to</label>
+        <div class="seg" id="lseg">
+          <button type="button" id="lseg11" data-t="11" aria-pressed="true">11 points</button>
+          <button type="button" id="lseg21" data-t="21" aria-pressed="false">21 points</button>
+        </div>
+      </div>
+      <div class="vs">
+        <div class="side"><label for="lA">Player 1</label><select id="lA"></select></div>
+        <div class="vsmark">VS</div>
+        <div class="side"><label for="lB">Player 2</label><select id="lB"></select></div>
+      </div>
+      <div>
+        <label for="lFirst">Who serves first</label>
+        <select id="lFirst"><option value="coin">Coin flip</option><option value="a">Player 1</option><option value="b">Player 2</option></select>
+      </div>
+      <p class="msg" id="lMsg" role="status"></p>
+      <button class="primary" type="submit">Start the match</button>
+    </form>
+    <div id="livePlay" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="scoreboard"><button type="button" class="tile" id="tA"></button><button type="button" class="tile" id="tB"></button></div>
+      <p class="status" id="liveStatus" role="status"></p>
+      <div class="soundrow">
+        <button type="button" class="ghost" id="liveUndo">Undo point</button>
+        <button type="button" class="ghost" id="liveSound" aria-pressed="true"></button>
+      </div>
+      <div class="card" id="liveDone" hidden style="display:flex;flex-direction:column;gap:10px">
+        <h3 id="liveDoneTitle" style="font-size:22px"></h3>
+        <p class="sub" id="liveDoneText"></p>
+        <p class="msg" id="liveMsg" role="status"></p>
+        <button class="primary" id="liveSave" type="button">Save the match</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-profile" hidden>
+    <a class="ghost btnlink" href="#board" style="align-self:flex-start">← Back to the ranks</a>
+    <div id="profileBox" style="display:flex;flex-direction:column;gap:12px"></div>
+  </section>
+
   <p class="foot">No paddles were harmed. Egos were.</p>
 </div>
 
@@ -255,6 +355,7 @@
   }
 
   const TABS = ['board', 'log', 'matchups', 'players'];
+  const VIEWS = TABS.concat(['live', 'profile']);
   const FIGHTERS = [
     ['🥷', 'The Ninja'], ['🤺', 'The Fencer'], ['🥊', 'The Boxer'], ['🥋', 'The Black Belt'], ['🤼', 'The Wrestler'], ['🦸', 'The Superhero'],
     ['🦹', 'The Villain'], ['🧙', 'The Wizard'], ['🧛', 'The Vampire'], ['🧟', 'The Zombie'], ['🧝', 'The Elf'], ['🤖', 'The Robot'],
@@ -291,29 +392,61 @@
   }
 
   /* ---------- stats (Elo is replayed from every match, oldest first) ---------- */
-  function compute() {
-    const by = new Map(players.map((p) => [p.id, Object.assign({}, p, { elo: 1000, w: 0, l: 0, pf: 0, pa: 0, streak: 0, bagelsTaken: 0, played: 0 })]));
-    const ms = matches.filter((m) => by.has(m.aId) && by.has(m.bId))
-      .sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : (x.createdAt || 0) - (y.createdAt || 0)));
-    const h2h = new Map();
+  const rankCmp = (x, y) => y.elo - x.elo || y.w - x.w || x.name.localeCompare(y.name);
+  function replay(ms) {
+    const by = new Map(players.map((p) => [p.id, Object.assign({}, p, { elo: 1000, w: 0, l: 0, pf: 0, pa: 0, streak: 0, best: 0, worst: 0, bagelsTaken: 0, bagelsGiven: 0, deuceWins: 0, deuceLosses: 0, giant: 0, comebacks: 0, played: 0, form: [], vs: {} })]));
+    const h2h = new Map(), perDay = new Map(), rec = { blowout: null, deuce: null, upset: null };
     for (const m of ms) {
-      const a = by.get(m.aId), b = by.get(m.bId);
-      const ea = 1 / (1 + Math.pow(10, (b.elo - a.elo) / 400));
-      const sa = m.aScore > m.bScore ? 1 : 0;
+      const a = by.get(m.aId), b = by.get(m.bId), preA = a.elo, preB = b.elo;
+      const ea = 1 / (1 + Math.pow(10, (b.elo - a.elo) / 400)), sa = m.aScore > m.bScore ? 1 : 0;
       a.elo += 32 * (sa - ea); b.elo += 32 * ((1 - sa) - (1 - ea));
       a.pf += m.aScore; a.pa += m.bScore; b.pf += m.bScore; b.pa += m.aScore; a.played++; b.played++;
-      const win = sa ? a : b, lose = sa ? b : a;
+      const win = sa ? a : b, lose = sa ? b : a, preW = sa ? preA : preB, preL = sa ? preB : preA;
+      const hi = Math.max(m.aScore, m.bScore), lo = Math.min(m.aScore, m.bScore), done = !m.endedEarly, t = m.target || 11;
+      if (win.streak <= -3) win.comebacks++;
       win.w++; lose.l++;
       win.streak = win.streak > 0 ? win.streak + 1 : 1;
       lose.streak = lose.streak < 0 ? lose.streak - 1 : -1;
-      if (Math.min(m.aScore, m.bScore) === 0) lose.bagelsTaken++;
+      win.best = Math.max(win.best, win.streak); lose.worst = Math.max(lose.worst, -lose.streak);
+      win.form.push('W'); lose.form.push('L');
+      if (done && lo === 0) { lose.bagelsTaken++; win.bagelsGiven++; }
+      if (done && hi > t) { win.deuceWins++; lose.deuceLosses++; }
+      if (preL - preW >= 150) win.giant++;
+      const vv = (x, y) => (x.vs[y.id] = x.vs[y.id] || { w: 0, l: 0 });
+      vv(win, lose).w++; vv(lose, win).l++;
+      if (done && (!rec.blowout || hi - lo >= rec.blowout.diff)) rec.blowout = { w: win.id, l: lose.id, hi, lo, diff: hi - lo };
+      if (done && hi > t && (!rec.deuce || hi >= rec.deuce.hi)) rec.deuce = { w: win.id, l: lose.id, hi, lo };
+      if (preL - preW > 0 && (!rec.upset || preL - preW >= rec.upset.gap)) rec.upset = { w: win.id, l: lose.id, gap: preL - preW, preW, preL };
+      perDay.set(m.date, (perDay.get(m.date) || 0) + 1);
       const key = [m.aId, m.bId].sort().join('|');
       const r = h2h.get(key) || { n: 0, wins: {}, last: '' };
       r.n++; r.wins[win.id] = (r.wins[win.id] || 0) + 1; r.last = m.date; h2h.set(key, r);
     }
-    const rows = [...by.values()].sort((x, y) => (y.played > 0) - (x.played > 0) || y.elo - x.elo || y.w - x.w || x.name.localeCompare(y.name));
-    return { rows, by, h2h, ms, points: ms.reduce((s, m) => s + m.aScore + m.bScore, 0) };
+    let day = null;
+    for (const [d, n] of perDay) if (!day || n > day.n) day = { d, n };
+    return { by, h2h, rec, day };
   }
+  function compute() {
+    const ms = matches.filter((m) => players.some((p) => p.id === m.aId) && players.some((p) => p.id === m.bId))
+      .sort((x, y) => (x.date < y.date ? -1 : x.date > y.date ? 1 : (x.createdAt || 0) - (y.createdAt || 0)));
+    const cur = replay(ms), prev = ms.length > 1 ? replay(ms.slice(0, -1)) : null;
+    const rankMap = (by) => new Map([...by.values()].filter((p) => p.played).sort(rankCmp).map((p, i) => [p.id, i + 1]));
+    const rows = [...cur.by.values()].sort((x, y) => (y.played > 0) - (x.played > 0) || rankCmp(x, y));
+    return { rows, by: cur.by, h2h: cur.h2h, ms, points: ms.reduce((t, m) => t + m.aScore + m.bScore, 0), rec: cur.rec, day: cur.day,
+      rank: rankMap(cur.by), prevRank: prev ? rankMap(prev.by) : null, lastMatch: ms[ms.length - 1] || null };
+  }
+
+  const BADGES = [
+    { icon: '🥯', name: 'Bagel Baker', desc: 'Shut someone out (11–0).', n: (p) => p.bagelsGiven },
+    { icon: '🗡️', name: 'Giant Slayer', desc: 'Beat someone rated 150+ above you.', n: (p) => p.giant },
+    { icon: '😬', name: 'Deuce Dweller', desc: 'Won a game that went past the target.', n: (p) => p.deuceWins },
+    { icon: '🔥', name: 'Comeback Kid', desc: 'Won right after losing 3 in a row.', n: (p) => p.comebacks },
+    { icon: '🌶️', name: 'Hot Hand', desc: 'Won 5 in a row.', n: (p) => (p.best >= 5 ? 1 : 0) },
+    { icon: '🪂', name: 'Gravity’s Favourite', desc: 'Lost 5 in a row.', n: (p) => (p.worst >= 5 ? 1 : 0) },
+    { icon: '🥈', name: 'Professional Runner-Up', desc: 'Lost 3 games that went to deuce.', n: (p) => (p.deuceLosses >= 3 ? 1 : 0) },
+    { icon: '🫠', name: 'Bagel Collector', desc: 'Got shut out. It happens. (To you.)', n: (p) => p.bagelsTaken },
+    { icon: '🏓', name: 'Table Regular', desc: 'Played 10 games.', n: (p) => (p.played >= 10 ? 1 : 0) }
+  ];
 
   /* Titles and roasts are drawn at random from a pool for the player's rank tier.
      The draw is stable during a visit (so the page doesn't flicker on every update)
@@ -368,17 +501,20 @@
       h('span', { text: stats.points + ' points of pure ego' }));
   }
 
+  const moveOf = (p) => { if (!stats.prevRank) return 0; const a = stats.prevRank.get(p.id), b = stats.rank.get(p.id); return a && b ? a - b : 0; };
   function renderBoard() {
     const box = $('#boardList'); box.replaceChildren();
     if (!stats) return;
     if (!players.length) { box.append(h('li', {}, empty('Nobody here yet', 'The leaderboard is a ghost town. Add a player and let the trash talk begin.', 'Add the first victim', () => go('players')))); return; }
     const nPlayed = stats.rows.filter((p) => p.played).length;
     stats.rows.forEach((p, i) => {
-      const diff = p.pf - p.pa, pct = p.played ? Math.round(100 * p.w / p.played) : 0;
+      const diff = p.pf - p.pa, pct = p.played ? Math.round(100 * p.w / p.played) : 0, mv = moveOf(p);
+      const badges = BADGES.filter((b) => b.n(p) > 0);
       box.append(h('li', { class: 'row' + (i === 0 && p.played ? ' first' : '') },
-        h('div', { class: 'rank', text: p.played ? String(i + 1) : '–' }),
+        h('div', { class: 'rank' }, h('span', { text: p.played ? String(i + 1) : '–' }), mv ? h('small', { class: 'mv ' + (mv > 0 ? 'up' : 'dn'), title: 'Since the last game', text: (mv > 0 ? '▲' : '▼') + Math.abs(mv) }) : null),
         h('div', { class: 'av', 'aria-hidden': 'true', text: p.emoji || '🏓' }),
-        h('div', { class: 'who' }, h('b', { text: p.name }), h('span', { class: 'title', text: titleFor(i, nPlayed, p) }), h('span', { class: 'roast', text: roastFor(i, nPlayed, p) })),
+        h('div', { class: 'who' }, h('a', { class: 'plink', href: '#p-' + p.id, text: p.name }), h('span', { class: 'title', text: titleFor(i, nPlayed, p) }), h('span', { class: 'roast', text: roastFor(i, nPlayed, p) }),
+          badges.length ? h('span', { class: 'badges' }, badges.slice(0, 6).map((b) => h('span', { title: b.name + ': ' + b.desc, 'aria-label': b.name, text: b.icon }))) : null),
         h('div', { class: 'elo' }, h('b', { text: String(Math.round(p.elo)) }), h('small', { text: 'ELO' })),
         h('div', { class: 'meta' },
           h('span', { text: p.w + 'W–' + p.l + 'L' }),
@@ -387,6 +523,50 @@
           p.streak >= 2 ? h('span', { class: 'w', text: 'W' + p.streak + ' streak' }) : null,
           p.streak <= -2 ? h('span', { class: 'l', text: 'L' + (-p.streak) + ' streak' }) : null)));
     });
+  }
+
+  function renderRecords() {
+    const box = $('#recs'); box.replaceChildren();
+    if (!stats) return;
+    if (!stats.ms.length) { box.append(h('div', { class: 'card' }, h('p', { class: 'sub', text: 'Records appear after the first match. Go make history (or a mess).' }))); return; }
+    const R = stats.rec, ps = [...stats.by.values()], list = [];
+    const top = (key) => ps.reduce((m, p) => (p[key] > (m ? m[key] : 0) ? p : m), null);
+    if (R.blowout) list.push(['💥', 'Biggest blowout', nm(R.blowout.w) + ' ' + R.blowout.hi + '–' + R.blowout.lo + ' ' + nm(R.blowout.l), 'The ball filed a missing-persons report.']);
+    if (R.deuce) list.push(['😰', 'Longest deuce', nm(R.deuce.w) + ' ' + R.deuce.hi + '–' + R.deuce.lo + ' ' + nm(R.deuce.l), 'Cardio has entered the chat.']);
+    if (R.upset) list.push(['🗡️', 'Biggest upset', nm(R.upset.w) + ' (' + Math.round(R.upset.preW) + ') beat ' + nm(R.upset.l) + ' (' + Math.round(R.upset.preL) + ')', 'David called. He wants credit.']);
+    const bs = top('best'); if (bs && bs.best >= 3) list.push(['🔥', 'Longest win streak', bs.name + ': ' + bs.best + ' in a row', 'Please check the paddle for batteries.']);
+    const ws = top('worst'); if (ws && ws.worst >= 3) list.push(['🪂', 'Longest losing streak', ws.name + ': ' + ws.worst + ' in a row', 'The floor sends flowers.']);
+    if (stats.day && stats.day.n >= 3) list.push(['🗓️', 'Busiest day', stats.day.n + ' games on ' + fmtDate(stats.day.d), 'Do none of you have jobs?']);
+    const bk = top('bagelsGiven'); if (bk) list.push(['🥯', 'Head baker', bk.name + ': ' + bk.bagelsGiven + (bk.bagelsGiven === 1 ? ' bagel' : ' bagels') + ' served', 'Fresh out the oven.']);
+    const bc = top('bagelsTaken'); if (bc) list.push(['🫠', 'Bagel collector', bc.name + ': ' + bc.bagelsTaken + ' taken', 'Carbs, but make it shame.']);
+    for (const [icon, k, main, roast] of list) box.append(h('div', { class: 'rec' }, h('span', { class: 'k', text: icon + ' ' + k }), h('b', { text: main }), h('span', { text: roast })));
+  }
+
+  function renderProfile(id) {
+    const box = $('#profileBox'); box.replaceChildren();
+    if (!stats) { box.append(h('p', { class: 'sub', text: 'Warming up the table…' })); return; }
+    const p = stats.by.get(id);
+    if (!p) { box.append(empty('Who?', 'No such fighter. They may have fled the country.', 'Back to the ranks', () => go('board'))); return; }
+    const nPlayed = stats.rows.filter((x) => x.played).length, i = stats.rows.findIndex((x) => x.id === id);
+    const pct = p.played ? Math.round(100 * p.w / p.played) : 0, diff = p.pf - p.pa;
+    const opp = Object.entries(p.vs).filter(([oid]) => stats.by.has(oid)).map(([oid, r]) => ({ id: oid, w: r.w, l: r.l, n: r.w + r.l }));
+    const nemesis = opp.filter((o) => o.l > o.w).sort((a, b) => (b.l - b.w) - (a.l - a.w) || b.n - a.n)[0];
+    const victim = opp.filter((o) => o.w > o.l).sort((a, b) => (b.w - b.l) - (a.w - a.l) || b.n - a.n)[0];
+    const stat = (v, k) => h('div', { class: 'stat' }, h('b', { text: v }), h('small', { text: k }));
+    const card = (k, o, line, none) => h('div', { class: 'rec' }, h('span', { class: 'k', text: k }), o ? h('b', { text: (stats.by.get(o.id).emoji || '') + ' ' + nm(o.id) }) : h('b', { text: none }), h('span', { text: o ? line(o) : '' }));
+    box.append(
+      h('div', { class: 'card' }, h('div', { class: 'pf-head' },
+        h('div', { class: 'av', 'aria-hidden': 'true', text: p.emoji || '🏓' }),
+        h('div', { style: 'min-width:0' }, h('h2', { text: p.name }), h('div', { class: 'title', text: (fighterName(p.emoji) ? fighterName(p.emoji) + ' · ' : '') + titleFor(i, nPlayed, p) }), h('p', { class: 'sub', text: roastFor(i, nPlayed, p) })))),
+      h('div', { class: 'stats' }, stat(p.played ? '#' + (i + 1) : '–', 'Rank'), stat(String(Math.round(p.elo)), 'Elo'), stat(p.w + '–' + p.l, 'W–L'), stat(pct + '%', 'Win rate'), stat((diff > 0 ? '+' : '') + diff, 'Points +/-'), stat(String(p.best), 'Best streak')),
+      h('div', { class: 'recs' },
+        card('😈 Nemesis', nemesis, (o) => nm(o.id) + ' owns you ' + o.l + '–' + o.w + '. Therapy is cheaper than a rematch.', 'No nemesis yet. Suspicious.'),
+        card('🎯 Favourite victim', victim, (o) => 'You lead ' + o.w + '–' + o.l + '. They keep coming back, which is concerning.', 'Nobody to bully yet.')),
+      h('div', { class: 'card' }, h('label', { text: 'Recent form' }), p.form.length ? h('div', { class: 'dots' }, p.form.slice(-10).map((r) => h('span', { class: 'dot ' + r, 'aria-label': r === 'W' ? 'Win' : 'Loss', text: r }))) : h('p', { class: 'sub', text: 'Nothing to see. Play a game.' })),
+      h('div', {}, h('h3', { text: 'Badges', style: 'font-size:18px;margin-bottom:8px' }),
+        h('div', { class: 'bgrid' }, BADGES.map((b) => { const n = b.n(p); return h('div', { class: 'bdg' + (n ? '' : ' off') }, h('i', { text: b.icon }), h('div', {}, h('b', { text: b.name + (n > 1 ? ' ×' + n : '') }), h('small', { text: b.desc }))); }))),
+      h('div', {}, h('h3', { text: 'Head to head', style: 'font-size:18px;margin-bottom:8px' }),
+        opp.length ? h('ul', { class: 'rows recent' }, opp.sort((a, b) => b.n - a.n).map((o) => h('li', {}, h('div', { class: 'line' }, 'vs ', h('a', { class: 'plink', style: 'font-size:16px', href: '#p-' + o.id, text: nm(o.id) })), h('b', { text: o.w + '–' + o.l })))) : h('p', { class: 'sub', text: 'No rivals yet.' })));
   }
 
   function fillSelect(sel, keep) {
@@ -408,7 +588,9 @@
           h('b', { text: nm(aw ? m.aId : m.bId) }), ' beat ', nm(aw ? m.bId : m.aId), ' ',
           h('b', { text: Math.max(m.aScore, m.bScore) + '–' + Math.min(m.aScore, m.bScore) }),
           h('small', { text: fmtDate(m.date) + ' · to ' + (m.target || 11) + (m.endedEarly ? ' · ended early' : '') })),
-        canWrite ? h('button', { class: 'ghost del', type: 'button', 'aria-label': 'Delete this match', text: armed ? 'Sure?' : 'Delete', onclick: () => deleteMatch(m.id) }) : null));
+        h('div', { class: 'acts' },
+          h('button', { class: 'ghost', type: 'button', text: 'Share', onclick: () => doShare(shareText(m)) }),
+          canWrite ? h('button', { class: 'ghost del', type: 'button', 'aria-label': 'Delete this match', text: armed ? 'Sure?' : 'Delete', onclick: () => deleteMatch(m.id) }) : null)));
     }
   }
 
@@ -438,7 +620,7 @@
       h('div', {}, h('div', { class: 'odds', role: 'img', 'aria-label': a.name + ' ' + pa + ' percent, ' + b.name + ' ' + (100 - pa) + ' percent' }, h('i', { style: 'width:' + pa + '%' }), h('i', { style: 'width:' + (100 - pa) + '%' })),
         h('div', { class: 'oddsl' }, h('span', { text: pa + '%' }), h('span', { text: (100 - pa) + '%' }))),
       h('p', { text: lead + ' ' + hype(a, b, p) }),
-      canWrite ? h('button', { class: 'primary', type: 'button', text: 'Play this', onclick: () => prefill(a.id, b.id) }) : null);
+      canWrite ? h('div', { class: 'pair' }, h('button', { class: 'primary', type: 'button', text: 'Play this', onclick: () => prefill(a.id, b.id) }), h('button', { class: 'ghost', type: 'button', text: 'Score it live', onclick: () => liveFrom(a.id, b.id) })) : null);
   }
   let randomPair = null;
   function renderMatchups() {
@@ -458,15 +640,22 @@
     for (const p of [...stats.by.values()].sort((a, b) => a.name.localeCompare(b.name))) {
       box.append(h('li', { class: 'row', style: 'grid-template-columns:46px minmax(0,1fr) auto;grid-template-areas:\'av who elo\'' },
         h('div', { class: 'av', 'aria-hidden': 'true', text: p.emoji || '🏓' }),
-        h('div', { class: 'who' }, h('b', { text: p.name }), h('span', { class: 'roast', text: (fighterName(p.emoji) ? fighterName(p.emoji) + ' · ' : '') + (p.played ? p.w + 'W–' + p.l + 'L so far' : 'Rookie. No matches yet.') })),
+        h('div', { class: 'who' }, h('a', { class: 'plink', href: '#p-' + p.id, text: p.name }), h('span', { class: 'roast', text: (fighterName(p.emoji) ? fighterName(p.emoji) + ' · ' : '') + (p.played ? p.w + 'W–' + p.l + 'L so far' : 'Rookie. No matches yet.') })),
         h('div', { class: 'elo' }, h('b', { text: String(Math.round(p.elo)) }), h('small', { text: 'ELO' }))));
     }
   }
 
+  let justLogged = false, celebrated = false, lastSeenId = null, pendingSub = '', lastResult = null;
   function renderAll() {
     stats = compute();
-    renderTally(); renderBoard(); renderLog(); renderMatchups(); renderPlayers();
+    const lm = stats.lastMatch;
+    if (justLogged && lm && lm.id !== lastSeenId) { justLogged = false; announceMoves(); }
+    lastSeenId = lm ? lm.id : null;
+    renderTally(); renderBoard(); renderRecords(); renderLog(); renderMatchups(); renderPlayers();
     for (const f of ['#logForm', '#playerForm']) $(f).hidden = !canWrite;
+    $('#liveCard').hidden = !canWrite;
+    if (tab === 'profile') renderProfile(currentView().id);
+    if (tab === 'live') liveRender(); else { fillSelect($('#lA'), $('#lA').value); fillSelect($('#lB'), $('#lB').value); }
     $('#banner').replaceChildren(canWrite ? '' : h('p', { class: 'note', text: 'View-only mode: you can watch the carnage but not add to it. Ask the owner for Contributor access to log matches.' }));
   }
 
@@ -474,10 +663,19 @@
 
   /* ---------- navigation ---------- */
   function go(t) { location.hash = t; }
+  function currentView() {
+    const hs = location.hash.slice(1);
+    if (hs.startsWith('p-')) return { v: 'profile', id: hs.slice(2) };
+    return { v: VIEWS.includes(hs) && hs !== 'profile' ? hs : 'board' };
+  }
   function showTab() {
-    const t = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : 'board';
-    tab = t;
-    for (const name of TABS) { $('#v-' + name).hidden = name !== t; $('#t-' + name).setAttribute('aria-selected', String(name === t)); }
+    const c = currentView(); tab = c.v;
+    for (const name of VIEWS) $('#v-' + name).hidden = name !== c.v;
+    const hl = c.v === 'profile' ? 'board' : c.v === 'live' ? 'log' : c.v;
+    for (const name of TABS) $('#t-' + name).setAttribute('aria-selected', String(name === hl));
+    if (c.v === 'profile') renderProfile(c.id);
+    if (c.v === 'live') liveRender();
+    if (c.v === 'profile' || c.v === 'live') window.scrollTo(0, 0);
   }
   addEventListener('hashchange', showTab);
   document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
@@ -485,11 +683,11 @@
   /* ---------- log form ---------- */
   function setTarget(t) {
     target = t;
-    $('#seg11').setAttribute('aria-pressed', String(t === 11)); $('#seg21').setAttribute('aria-pressed', String(t === 21));
+    for (const pre of ['', 'l']) { $('#' + pre + 'seg11').setAttribute('aria-pressed', String(t === 11)); $('#' + pre + 'seg21').setAttribute('aria-pressed', String(t === 21)); }
     $('#rule').textContent = 'First to ' + t + ', win by 2. Tied at ' + (t - 1) + '–' + (t - 1) + ' it goes to deuce, so ' + (t + 1) + '–' + (t - 1) + ' ends it, but ' + (t + 2) + '–' + t + ', ' + (t + 3) + '–' + (t + 1) + ' and beyond are all legal.';
     try { localStorage.setItem('pp-target', String(t)); } catch (e) {}
   }
-  $('#seg').addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) setTarget(parseInt(b.dataset.t, 10)); });
+  for (const id of ['#seg', '#lseg']) $(id).addEventListener('click', (e) => { const b = e.target.closest('button[data-t]'); if (b) setTarget(parseInt(b.dataset.t, 10)); });
   setTarget(target);
   $('#mDate').value = today();
 
@@ -521,13 +719,11 @@
     if (err) return say(msg, err, 'bad');
     const btn = $('#logBtn'); btn.disabled = true;
     try {
-      await store.addMatch({ date, aId, bId, aScore: a, bScore: b, target, endedEarly: early });
-      const aw = a > b, hi = Math.max(a, b), lo = Math.min(a, b);
-      const quip = early ? ' Called early, the leader takes it. Quitting is a lifestyle.' : lo === 0 ? ' A bagel. Brutal.' : hi - lo <= 2 ? ' Nail-biter.' : hi - lo >= 8 ? ' That was not a match, that was a tutorial.' : '';
-      say(msg, nm(aw ? aId : bId) + ' beat ' + nm(aw ? bId : aId) + ' ' + hi + '–' + lo + '.' + quip, 'ok');
+      const m = { date, aId, bId, aScore: a, bScore: b, target, endedEarly: early };
+      await logMatch(m);
+      say(msg, resultText(m), 'ok');
       $('#sA').value = ''; $('#sB').value = ''; $('#early').checked = false;
-      flash(nm(aw ? aId : bId), nm(aw ? bId : aId), lo === 0);
-      memeSounds(lo === 0);
+      celebrate(m);
     } catch (er) { writeFailed(msg, er); } finally { btn.disabled = false; }
   });
 
@@ -669,16 +865,161 @@
   }
   const CAPTIONS = ['AND HIS NAME IS {W}!', 'ALL HAIL {W}', '{W} DEMOLISHES {L}', '{L} HAS LEFT THE CHAT', 'MOM GET THE CAMERA, {W} WON', 'YOU CAN’T SEE {W}. THE BALL CAN’T EITHER.', '{W} HAS ENTERED THE HALL OF FAME'];
   let flashTimer = 0;
+  function applySub() { if (pendingSub && celebrated && !$('#flash').hidden) { $('#flashSub').textContent = pendingSub; pendingSub = ''; } }
   function flash(w, l, bagel) {
     const box = $('#flash'), text = bagel ? l + ' SCORED ZERO. ZERO.' : oneOf(CAPTIONS).replace('{W}', w).replace('{L}', l);
-    box.textContent = text.toUpperCase(); box.hidden = false; box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
-    clearTimeout(flashTimer); flashTimer = setTimeout(() => { box.hidden = true; }, 3200);
+    $('#flashMain').textContent = text.toUpperCase(); $('#flashSub').textContent = '';
+    box.hidden = false; box.classList.remove('pop'); void box.offsetWidth; box.classList.add('pop');
+    clearTimeout(flashTimer); flashTimer = setTimeout(() => { box.hidden = true; }, 3600);
+    applySub();
   }
-  function showSoundBtn() { const b = $('#soundBtn'); b.textContent = 'Meme sounds: ' + (soundOn ? 'on' : 'off'); b.setAttribute('aria-pressed', String(soundOn)); }
+  function showSoundBtn() { for (const b of [$('#soundBtn'), $('#liveSound')]) { b.textContent = 'Meme sounds: ' + (soundOn ? 'on' : 'off'); b.setAttribute('aria-pressed', String(soundOn)); } }
   showSoundBtn();
-  $('#soundBtn').addEventListener('click', () => { soundOn = !soundOn; try { localStorage.setItem('pp-sound', soundOn ? 'on' : 'off'); } catch (e) {} if (soundOn) unlockAudio(); showSoundBtn(); });
+  for (const b of [$('#soundBtn'), $('#liveSound')]) b.addEventListener('click', () => { soundOn = !soundOn; try { localStorage.setItem('pp-sound', soundOn ? 'on' : 'off'); } catch (e) {} if (soundOn) unlockAudio(); showSoundBtn(); });
   $('#testWin').addEventListener('click', () => { unlockAudio(); if (actx) playOne('win', false).catch(() => {}); });
   $('#testLose').addEventListener('click', () => { unlockAudio(); if (actx) playOne('lose', false).catch(() => {}); });
+
+  /* ---------- logging helpers, celebration, sharing ---------- */
+  async function logMatch(m) {
+    justLogged = true; celebrated = false; pendingSub = '';
+    setTimeout(() => { justLogged = false; }, 8000);
+    try { await store.addMatch(m); } catch (e) { justLogged = false; throw e; }
+  }
+  function resultText(m) {
+    const aw = m.aScore > m.bScore, hi = Math.max(m.aScore, m.bScore), lo = Math.min(m.aScore, m.bScore);
+    const quip = m.endedEarly ? ' Called early, the leader takes it. Quitting is a lifestyle.' : lo === 0 ? ' A bagel. Brutal.' : hi - lo <= 2 ? ' Nail-biter.' : hi - lo >= 8 ? ' That was not a match, that was a tutorial.' : '';
+    return nm(aw ? m.aId : m.bId) + ' beat ' + nm(aw ? m.bId : m.aId) + ' ' + hi + '–' + lo + '.' + quip;
+  }
+  function celebrate(m) {
+    const aw = m.aScore > m.bScore, lo = Math.min(m.aScore, m.bScore);
+    lastResult = m; celebrated = true; $('#shareLast').hidden = false;
+    flash(nm(aw ? m.aId : m.bId), nm(aw ? m.bId : m.aId), lo === 0 && !m.endedEarly);
+    memeSounds(lo === 0);
+  }
+  function announceMoves() {   // rank drama for the match that was just logged
+    const lm = stats.lastMatch, W = lm.aScore > lm.bScore ? lm.aId : lm.bId, nr = stats.rank.get(W), pr = stats.prevRank && stats.prevRank.get(W);
+    if (!nr || !stats.prevRank) return;
+    let sub = '';
+    if (pr == null || nr < pr) {
+      if (nr === 1) sub = '▲ NEW #1: ' + nm(W);
+      else { const v = [...stats.by.values()].find((p) => stats.prevRank.get(p.id) === nr && stats.rank.get(p.id) > nr); sub = v ? '▲ ' + nm(W) + ' OVERTAKES ' + nm(v.id) + ' FOR #' + nr : '▲ ' + nm(W) + ' CLIMBS TO #' + nr; }
+    } else if (nr === 1 && pr === 1) sub = 'STILL #1. STILL INSUFFERABLE.';
+    pendingSub = sub.toUpperCase(); applySub();
+  }
+  function shareText(m) {
+    const aw = m.aScore > m.bScore, W = aw ? m.aId : m.bId, L = aw ? m.bId : m.aId, hi = Math.max(m.aScore, m.bScore), lo = Math.min(m.aScore, m.bScore);
+    const w = stats && stats.by.get(W), rk = stats && stats.rank.get(W);
+    return '🏓 Ping Pong Hall of Shame: ' + nm(W) + ' beat ' + nm(L) + ' ' + hi + '–' + lo + ' (to ' + (m.target || 11) + ').' +
+      (rk && w ? ' ' + nm(W) + ' is #' + rk + ' with ' + Math.round(w.elo) + ' Elo.' : '') + ' ' + location.href.split('#')[0];
+  }
+  let toastT = 0;
+  function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 2600); }
+  async function doShare(text) {
+    try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text); toast('Copied. Paste it in the group chat.'); }
+    catch (e) { say($('#logMsg'), text, 'ok'); go('log'); toast('Couldn’t copy, so the text is on the Log it tab.'); }
+  }
+  $('#shareLast').addEventListener('click', () => { if (lastResult) doShare(shareText(lastResult)); });
+
+  /* ---------- live scorer: tap per point, serve rotation, deuce, game point ---------- */
+  const LIVE_KEY = 'pp-live-v1';
+  let live = null, liveArmed = false;
+  try { const raw = JSON.parse(localStorage.getItem(LIVE_KEY)); if (raw && raw.aId && raw.bId && Array.isArray(raw.hist)) live = raw; } catch (e) {}
+  const liveStore = () => { try { if (live) localStorage.setItem(LIVE_KEY, JSON.stringify(live)); else localStorage.removeItem(LIVE_KEY); } catch (e) {} };
+  function liveScores() { let a = 0, b = 0; for (const w of live.hist) { if (w) b++; else a++; } return [a, b]; }
+  function liveServer() {   // serve changes every 2 points (every 5 in a 21-point game), and every point once deuce starts
+    let s = live.first, c = 0, a = 0, b = 0;
+    const t = live.target;
+    for (const w of live.hist) {
+      if (w) b++; else a++; c++;
+      const n = a >= t - 1 && b >= t - 1 ? 1 : t === 21 ? 5 : 2;
+      if (c >= n) { s = 1 - s; c = 0; }
+    }
+    return s;
+  }
+  function liveState() {
+    const [a, b] = liveScores(), t = live.target, pa = stats.by.get(live.aId), pb = stats.by.get(live.bId), names = [pa.name, pb.name];
+    if (checkScore(t, a, b, false) === '') return { done: true, a, b, w: a > b ? 0 : 1, names, pa, pb };
+    if (a >= t - 1 && b >= t - 1) return a === b ? { txt: 'DEUCE', kind: 'deuce', a, b, names, pa, pb } : { txt: 'ADVANTAGE ' + names[a > b ? 0 : 1].toUpperCase(), kind: 'adv', a, b, names, pa, pb };
+    const gpA = checkScore(t, a + 1, b, false) === '', gpB = checkScore(t, a, b + 1, false) === '';
+    if (gpA || gpB) return { txt: 'GAME POINT: ' + names[gpA ? 0 : 1].toUpperCase(), kind: 'gp', a, b, names, pa, pb };
+    return { txt: names[liveServer()] + ' to serve', kind: '', a, b, names, pa, pb };
+  }
+  function liveRender() {
+    const setup = $('#liveSetup'), play = $('#livePlay');
+    $('#liveNote').hidden = canWrite;
+    if (!canWrite || !stats) { setup.hidden = true; play.hidden = true; return; }
+    if (!live) {
+      setup.hidden = false; play.hidden = true;
+      fillSelect($('#lA'), $('#lA').value); fillSelect($('#lB'), $('#lB').value);
+      return;
+    }
+    if (!stats.by.has(live.aId) || !stats.by.has(live.bId)) { live = null; liveStore(); liveRender(); return; }
+    setup.hidden = true; play.hidden = false;
+    const st = liveState(), srv = st.done ? -1 : liveServer();
+    [['#tA', st.pa, st.a, 0], ['#tB', st.pb, st.b, 1]].forEach(([sel, p, sc, i]) => {
+      const el = $(sel);
+      el.className = 'tile' + (srv === i ? ' serving' : ''); el.disabled = !!st.done;
+      el.setAttribute('aria-label', p.name + ', ' + sc + ' points. Tap to add a point.');
+      el.replaceChildren(h('span', { class: 'serveball', title: 'Serving' }), h('div', { class: 'av', 'aria-hidden': 'true', text: p.emoji || '🏓' }), h('span', { class: 'lname', text: p.name }), h('span', { class: 'lscore', text: String(sc) }), h('span', { class: 'tap', text: st.done ? '' : 'Tap = point' }));
+    });
+    const status = $('#liveStatus');
+    status.className = 'status' + (st.kind ? ' ' + st.kind : '');
+    status.textContent = st.done ? st.names[st.w] + ' wins ' + Math.max(st.a, st.b) + '–' + Math.min(st.a, st.b) : st.txt;
+    $('#liveUndo').disabled = !live.hist.length;
+    const dn = $('#liveDone'); dn.hidden = !st.done;
+    if (st.done) {
+      $('#liveDoneTitle').textContent = st.names[st.w] + ' takes it, ' + Math.max(st.a, st.b) + '–' + Math.min(st.a, st.b);
+      $('#liveDoneText').textContent = Math.min(st.a, st.b) === 0 ? 'A bagel. ' + st.names[1 - st.w] + ' may need a moment.' : 'Save it to the ledger, or tap Undo point if someone mis-tapped.';
+    }
+    $('#liveQuit').textContent = liveArmed ? 'Sure? Game is lost' : 'Quit';
+  }
+  function livePoint(who) {
+    if (!live || !stats || liveState().done) return;
+    unlockAudio();
+    const prev = liveState();
+    live.hist.push(who); liveStore();
+    const st = liveState(); liveRender();
+    if (soundOn && actx) {
+      try {
+        const t = actx.currentTime + 0.01;
+        if (st.done) { tone(523, t, .12, { vol: .12 }); tone(784, t + .12, .3, { vol: .12 }); }
+        else if (st.kind === 'deuce' && prev.kind !== 'deuce') { tone(440, t, .12, { vol: .12 }); tone(330, t + .14, .3, { vol: .12 }); }
+        else if (st.kind === 'gp' && prev.kind !== 'gp') { tone(560, t, .1, { vol: .12 }); tone(740, t + .12, .18, { vol: .12 }); }
+        else tone(380 + (st.a + st.b) * 7, t, .07, { vol: .09 });
+      } catch (e) {}
+    }
+  }
+  function liveFrom(aId, bId) { live = null; liveStore(); go('live'); setTimeout(() => { $('#lA').value = aId; $('#lB').value = bId; }, 0); }
+  $('#tA').addEventListener('click', () => livePoint(0));
+  $('#tB').addEventListener('click', () => livePoint(1));
+  $('#liveUndo').addEventListener('click', () => { if (live && live.hist.length) { live.hist.pop(); liveStore(); liveRender(); } });
+  $('#liveQuit').addEventListener('click', () => {
+    if (live && live.hist.length && !liveArmed) { liveArmed = true; liveRender(); setTimeout(() => { liveArmed = false; if (tab === 'live') liveRender(); }, 4000); return; }
+    liveArmed = false; live = null; liveStore(); go('log');
+  });
+  $('#liveSetup').addEventListener('submit', (e) => {
+    e.preventDefault(); unlockAudio();
+    const aId = $('#lA').value, bId = $('#lB').value, f = $('#lFirst').value;
+    if (!aId || !bId) return say($('#lMsg'), 'Pick two players first.', 'bad');
+    if (aId === bId) return say($('#lMsg'), 'You can’t play yourself. Get a friend.', 'bad');
+    const first = f === 'a' ? 0 : f === 'b' ? 1 : Math.round(Math.random());
+    live = { aId, bId, target, first, hist: [] }; liveStore(); say($('#lMsg'), '', '');
+    if (f === 'coin') toast('Coin flip: ' + nm(first ? bId : aId) + ' serves first.');
+    liveRender();
+  });
+  $('#liveSave').addEventListener('click', async () => {
+    unlockAudio();
+    if (!live || !store) return;
+    const st = liveState(); if (!st.done) return;
+    const btn = $('#liveSave'); btn.disabled = true;
+    try {
+      const m = { date: today(), aId: live.aId, bId: live.bId, aScore: st.a, bScore: st.b, target: live.target, endedEarly: false };
+      await logMatch(m);
+      live = null; liveStore(); say($('#liveMsg'), '', '');
+      say($('#logMsg'), resultText(m), 'ok'); celebrate(m); go('log');
+    } catch (er) { writeFailed($('#liveMsg'), er); } finally { btn.disabled = false; }
+  });
 
   /* ---------- boot ---------- */
   showTab();

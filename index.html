@@ -151,7 +151,7 @@
   <div id="mode"></div>
 
   <section id="v-board">
-    <div class="head"><h2>All-time ranks</h2></div>
+    <div class="head"><h2>All-time ranks</h2><button class="ghost" id="reroll" type="button">Re-roast</button></div>
     <p class="sub">Every match ever, no seasons, no excuses. Rating is Elo: everyone starts at 1000 and beating better players pays more.</p>
     <ol class="rows" id="boardList"></ol>
   </section>
@@ -289,25 +289,49 @@
     return { rows, by, h2h, ms, points: ms.reduce((s, m) => s + m.aScore + m.bScore, 0) };
   }
 
-  function titleFor(i, nPlayed, p) {
-    if (!p.played) return 'Hasn’t played yet (suspicious)';
-    if (i === 0) return nPlayed > 1 ? 'Supreme Paddle Overlord' : 'Champion by default';
-    if (i === 1) return 'Close, But Spicy';
-    if (i === nPlayed - 1 && nPlayed >= 3) return 'Professional Net Inspector';
-    return 'Aggressively Average';
+  /* Titles and roasts are drawn at random from a pool for the player's rank tier.
+     The draw is stable during a visit (so the page doesn't flicker on every update)
+     and re-rolls on reload or when you tap Re-roast. */
+  let roll = Math.floor(Math.random() * 1e9);
+  const TITLES = {
+    first: ['Supreme Paddle Overlord', 'Table Tyrant', 'Emperor of the Net', 'Smash Royalty', 'The One Who Knocks (the ball)'],
+    second: ['Close, But Spicy', 'First Loser (Affectionate)', 'Silver Smasher-ish', 'Heir Apparent, Pending Paperwork'],
+    third: ['Podium Adjacent', 'Bronze, But Make It Sweaty', 'Respectable Menace'],
+    mid: ['Aggressively Average', 'Professional Rallier', 'Mid-Table Marvel', 'Certified Participant', 'Fine, Honestly'],
+    last: ['Professional Net Inspector', 'Floor Ball Specialist', 'Keeper of the Bottom Rung', 'Gravity’s Favourite Student', 'Human Ball Retriever'],
+    solo: ['Champion by Default', 'Undisputed (Nobody Else Showed Up)'],
+    none: ['Hasn’t played yet (suspicious)', 'Warm-up Specialist', 'Rumoured to Own a Paddle']
+  };
+  const ROASTS = {
+    first: ['Currently untouchable. Currently.', 'Wears the crown. The crown is a sweatband.', 'Everyone else is playing for second place.', 'Has not heard the word "deuce" in weeks.', 'Humble in public, insufferable in the group chat.'],
+    second: ['One good rally from glory. One.', 'Practises the victory speech anyway.', 'Always the bridesmaid, never the paddle.', 'Blames the table. The table is fine.'],
+    third: ['Standing on the podium mostly for the photo.', 'Strong serve, unclear vibes.', 'Would be higher if the ball cooperated.'],
+    mid: ['Wins just often enough to stay confident.', 'Plays like the ball owes them money.', 'Trains exclusively at lunch.', 'Has a signature serve. It lands nowhere near the signature.', 'Perfectly balanced. Annoyingly so.'],
+    last: ['Makes everyone else feel like a pro.', 'The ball sees them and chooses violence.', 'Loses with a confidence that deserves a prize.', 'Statistically, the table is rooting for them.', 'Every great leaderboard needs a foundation.'],
+    solo: ['Dominates a field of one. Terrifying.', 'Beat nobody yet. Lost to nobody yet.'],
+    none: ['Suspiciously well-rested.', 'Paddle still in the original packaging.', 'Stretching. For three weeks now.']
+  };
+  const SITUATIONAL = (p) => {
+    const pct = p.played ? p.w / p.played : 0, out = [];
+    if (p.streak >= 3) out.push('On a ' + p.streak + '-win streak. Someone check the paddle for batteries.', p.streak + ' wins in a row. Please stop. Please.');
+    if (p.streak <= -3) out.push(-p.streak + ' straight losses. The floor sends its condolences.', -p.streak + ' in a row. Legally this counts as a hobby.');
+    if (p.bagelsTaken) out.push('Got bageled. Zero points. The ball never even said hi.');
+    if (p.played >= 3 && pct === 1) out.push('Undefeated. Insufferable.');
+    if (p.played >= 3 && pct === 0) out.push('Winless. Heroic commitment to the bit.');
+    return out;
+  };
+  function tier(i, nPlayed, p) {
+    if (!p.played) return 'none';
+    if (nPlayed === 1) return 'solo';
+    if (i === 0) return 'first';
+    if (i === 1) return 'second';
+    if (i === nPlayed - 1 && nPlayed >= 3) return 'last';
+    if (i === 2 && nPlayed >= 5) return 'third';
+    return 'mid';
   }
-  function roastFor(i, nPlayed, p) {
-    const pct = p.played ? p.w / p.played : 0;
-    if (!p.played) return 'Suspiciously well-rested.';
-    if (p.streak >= 3) return 'On a ' + p.streak + '-win streak. Someone check the paddle for batteries.';
-    if (p.streak <= -3) return -p.streak + ' straight losses. The floor sends its condolences.';
-    if (p.bagelsTaken) return 'Got bageled. Zero points. The ball never even said hi.';
-    if (p.played >= 3 && pct === 1) return 'Undefeated. Insufferable.';
-    if (p.played >= 3 && pct === 0) return 'Winless. Heroic commitment to the bit.';
-    if (i === 0) return 'Currently untouchable. Currently.';
-    if (i === nPlayed - 1 && nPlayed >= 3) return 'Makes everyone else feel like a pro.';
-    return pick(['Wins just often enough to stay confident.', 'Plays like the ball owes them money.', 'Great serve, unclear vibes.', 'Trains exclusively at lunch.', 'Blames the table. Every time.'], p.id);
-  }
+  const draw = (arr, p, kind) => pick(arr, p.id + ':' + kind + ':' + roll);
+  const titleFor = (i, nPlayed, p) => draw(TITLES[tier(i, nPlayed, p)], p, 'title');
+  const roastFor = (i, nPlayed, p) => draw(ROASTS[tier(i, nPlayed, p)].concat(SITUATIONAL(p)), p, 'roast');
 
   /* ---------- rendering ---------- */
   function renderTally() {
@@ -419,6 +443,8 @@
     for (const f of ['#logForm', '#playerForm']) $(f).hidden = !canWrite;
     $('#banner').replaceChildren(canWrite ? '' : h('p', { class: 'note', text: 'View-only mode: you can watch the carnage but not add to it. Ask the owner for Contributor access to log matches.' }));
   }
+
+  $('#reroll').addEventListener('click', () => { roll = Math.floor(Math.random() * 1e9); renderBoard(); });
 
   /* ---------- navigation ---------- */
   function go(t) { location.hash = t; }
